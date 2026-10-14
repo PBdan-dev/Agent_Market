@@ -1,0 +1,84 @@
+// SQLite en développement. Pour la production, passer `provider` à "postgresql"
+// et pointer DATABASE_URL vers la base Postgres (les modèles restent identiques).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  agents       Agent[]
+}
+
+// Un agent est soit téléchargeable (DOWNLOAD : du code que l'utilisateur exécute
+// chez lui), soit à louer (RENTAL : un service hébergé par son créateur).
+model Agent {
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  kind          String // "DOWNLOAD" | "RENTAL"
+  name          String
+  summary       String
+  description   String
+  status        String      @default("PUBLISHED") // "PUBLISHED" | "UNLISTED"
+  license       String?
+  sourceUrl     String?
+  authorId      String
+  author        User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  downloadCount Int         @default(0)
+
+  // Location : informations déclaratives. Le paiement et l'exécution viendront plus tard.
+  endpointUrl   String?
+  priceCents    Int?
+  currency      String      @default("EUR")
+  priceUnit     String? // ex. "par requête", "par heure", "par résultat"
+
+  files         AgentFile[]
+  tags          AgentTag[]
+
+  @@index([kind, status, createdAt])
+}
+
+// Fichier archive d'un agent téléchargeable. Une ligne par version publiée.
+model AgentFile {
+  id           String   @id @default(cuid())
+  agentId      String
+  agent        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  version      String
+  extension    String // ".zip" | ".tar.gz" | ".tgz"
+  storageKey   String   @unique
+  sizeBytes    Int
+  sha256       String
+  createdAt    DateTime @default(now())
+
+  @@unique([agentId, version])
+}
+
+model Tag {
+  id     String     @id @default(cuid())
+  slug   String
+  name   String
+  group  String // "CATEGORY" | "THEME" | "TECHNOLOGY"
+  agents AgentTag[]
+
+  @@unique([group, slug])
+}
+
+model AgentTag {
+  agentId String
+  tagId   String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([agentId, tagId])
+  @@index([tagId])
+}
