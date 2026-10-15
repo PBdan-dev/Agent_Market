@@ -1,0 +1,10 @@
+{
+  "name": "Agent Market",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "postCreateCommand": "npm install && npm run setup",
+  "postAttachCommand": "npm run dev",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "Site Agent Market", "onAutoForward": "openBrowser" }
+  }
+}

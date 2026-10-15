@@ -116,6 +116,45 @@ const DEMOS: Demo[] = [
     priceCents: 20,
     priceUnit: "par ticket",
   },
+  {
+    kind: "DOWNLOAD",
+    name: "Assistant revue de code (démo)",
+    summary: "Relit vos pull requests GitHub et signale bugs, failles et oublis de tests.",
+    description: "Agent de démonstration.\n\nSe branche sur un orchestrateur via MCP et commente directement les pull requests.",
+    tags: [["CATEGORY", "Développement"], ["THEME", "Code"], ["TECHNOLOGY", "MCP"], ["TECHNOLOGY", "TypeScript"]],
+  },
+  {
+    kind: "DOWNLOAD",
+    name: "Rédacteur d'articles SEO (démo)",
+    summary: "Produit des articles de blog optimisés pour le référencement à partir d'un mot-clé.",
+    description: "Agent de démonstration.\n\nRecherche les sujets associés, propose un plan, rédige et suggère les balises.",
+    tags: [["CATEGORY", "Marketing & ventes"], ["THEME", "Rédaction"], ["TECHNOLOGY", "Python"], ["TECHNOLOGY", "LangChain"]],
+  },
+  {
+    kind: "DOWNLOAD",
+    name: "Analyste de tableurs (démo)",
+    summary: "Explore un fichier Excel ou CSV et répond à vos questions en langage naturel.",
+    description: "Agent de démonstration.\n\nFonctionne en local, aucune donnée n'est envoyée à un tiers.",
+    tags: [["CATEGORY", "Données & analyse"], ["THEME", "Automatisation"], ["TECHNOLOGY", "Python"], ["TECHNOLOGY", "Docker"]],
+  },
+  {
+    kind: "RENTAL",
+    name: "Animation de personnage 3D (démo)",
+    summary: "Anime un personnage riggé à partir d'une description du mouvement.",
+    description: "Agent de démonstration.\n\nRendu sur GPU chez le créateur, livraison d'un fichier FBX et d'une vidéo d'aperçu.",
+    tags: [["CATEGORY", "3D & création"], ["THEME", "Animation"], ["TECHNOLOGY", "Blender"], ["TECHNOLOGY", "GPU"]],
+    priceCents: 1500,
+    priceUnit: "par animation",
+  },
+  {
+    kind: "RENTAL",
+    name: "Rapport financier mensuel (démo)",
+    summary: "Transforme vos exports comptables en rapport mensuel commenté.",
+    description: "Agent de démonstration.\n\nService hébergé, appelable en A2A. Livraison au format PDF.",
+    tags: [["CATEGORY", "Finance"], ["THEME", "Automatisation"], ["TECHNOLOGY", "A2A"], ["TECHNOLOGY", "Python"]],
+    priceCents: 4900,
+    priceUnit: "par rapport",
+  },
 ];
 
 async function seedDemo() {

@@ -14,17 +14,31 @@ Les agents sont classés par **catégorie**, **thème** et **technologie**, filt
 - Comptes e-mail + mot de passe (bcrypt), session dans un cookie signé (JWT HS256)
 - Archives stockées sur disque (`src/lib/storage.ts`), interface prévue pour basculer sur un stockage objet (S3, R2)
 
-## Démarrer en local
+## Tester le site
+
+### Option 1 : dans le navigateur, sans rien installer (GitHub Codespaces)
+
+1. Sur la page GitHub du dépôt, bouton vert **Code** → onglet **Codespaces** → **Create codespace on main** (ou sur la branche à tester).
+2. Attendre l'installation (quelques minutes la première fois). Le site démarre seul et s'ouvre dans un nouvel onglet.
+3. Si l'onglet ne s'ouvre pas : onglet **Ports** en bas de l'éditeur → ligne 3000 → icône globe.
+
+### Option 2 : sur votre ordinateur
+
+Prérequis : [Node.js 22](https://nodejs.org) et Git.
 
 ```bash
+git clone https://github.com/PBdan-dev/Agent_Market.git
+cd Agent_Market
 npm install
-cp .env.example .env          # puis remplacer SESSION_SECRET
-npx prisma migrate dev        # crée la base SQLite
-npm run db:seed -- --demo     # tags de départ + 4 agents de démonstration
-npm run dev                   # http://localhost:3000
+npm run setup     # crée .env, la base de données et le contenu de démonstration
+npm run dev       # puis ouvrir http://localhost:3000
 ```
 
-Compte de démonstration : `demo@agent-market.local` / `demo-demo-demo` (créé uniquement avec `--demo`).
+### Contenu de test
+
+`npm run setup` ajoute 9 agents de démonstration (5 téléchargeables, 4 à louer) avec leurs tags. Il peut être relancé sans créer de doublons.
+
+Compte de démonstration : `demo@agent-market.local` / `demo-demo-demo`. Pour ajouter vos propres agents, créez un compte ou connectez-vous, puis **Publier un agent**.
 
 ## Vérifications
 
