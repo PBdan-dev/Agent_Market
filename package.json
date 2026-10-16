@@ -5,7 +5,7 @@
   "scripts": {
     "predev": "node scripts/setup.mjs",
     "dev": "next dev",
-    "maj": "git pull --ff-only && npm install && npm run dev",
+    "maj": "node scripts/update.mjs",
     "build": "next build",
     "start": "next start",
     "setup": "node scripts/setup.mjs",

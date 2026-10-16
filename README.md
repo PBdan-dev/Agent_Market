@@ -22,7 +22,7 @@ Les agents sont classés par **catégorie**, **thème** et **technologie**. Le f
 2. Attendre l'installation (quelques minutes la première fois). Le site démarre seul et s'ouvre dans un nouvel onglet.
 3. Si l'onglet ne s'ouvre pas : onglet **Ports** en bas de l'éditeur → ligne 3000 → icône globe.
 
-**Mettre à jour un codespace existant** après une nouvelle version du code : dans le terminal, `Ctrl+C` pour arrêter le site, puis `npm run maj`. La commande récupère le code, met la base à jour et relance le site.
+**Mettre à jour un codespace existant** après une nouvelle version du code : dans le terminal (appuyer d'abord sur `Ctrl+C` si le site y tourne), taper `npm run maj`, puis rafraîchir l'onglet du site quand « Ready » s'affiche. La commande arrête l'ancien site, récupère le code, met la base à jour et relance le site ; elle affiche la version installée.
 
 ### Option 2 : sur votre ordinateur
 

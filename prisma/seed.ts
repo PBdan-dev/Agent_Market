@@ -12,6 +12,15 @@ import { slugify } from "../src/lib/slug";
 import { deleteFile, saveFile } from "../src/lib/storage";
 import { buildZip } from "../src/lib/zip-build";
 
+// Lancé directement (npm run db:seed), le script doit trouver DATABASE_URL dans .env.
+if (!process.env.DATABASE_URL) {
+  try {
+    process.loadEnvFile(".env");
+  } catch {
+    // pas de .env : DATABASE_URL doit venir de l'environnement
+  }
+}
+
 const db = new PrismaClient();
 const EXAMPLES_DIR = path.resolve(__dirname, "..", "examples");
 const EXAMPLES_AUTHOR = { email: "exemples@agent-market.local", name: "Agent Market" };

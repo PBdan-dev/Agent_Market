@@ -15,6 +15,10 @@ if (!existsSync(".env")) {
   console.log("✓ Fichier .env créé");
 }
 
+// Le client Prisma ne lit .env que s'il existait lors de son installation : on le charge
+// explicitement pour que le script de données fonctionne aussi sur une installation neuve.
+process.loadEnvFile(".env");
+
 const run = (cmd) => execSync(cmd, { stdio: "inherit" });
 run("npx prisma migrate deploy");
 run("npx tsx prisma/seed.ts --demo");
