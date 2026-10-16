@@ -1,0 +1,14 @@
+{
+  "job_id": "job_8f3a",
+  "status": "done",
+  "result": {
+    "mesh_url": "https://mesh.exemple.agent-market/v1/jobs/job_8f3a/theiere.glb",
+    "previews": [
+      "https://mesh.exemple.agent-market/v1/jobs/job_8f3a/front.png",
+      "https://mesh.exemple.agent-market/v1/jobs/job_8f3a/side.png",
+      "https://mesh.exemple.agent-market/v1/jobs/job_8f3a/top.png"
+    ],
+    "triangles": 18422,
+    "manifold": true
+  }
+}

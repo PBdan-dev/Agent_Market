@@ -26,8 +26,23 @@ model Agent {
   kind          String // "DOWNLOAD" | "RENTAL"
   name          String
   summary       String
-  description   String
+  description   String      @default("") // description détaillée, optionnelle
   status        String      @default("PUBLISHED") // "PUBLISHED" | "UNLISTED"
+
+  // Fiche d'identité de l'agent. Les listes sont stockées une entrée par ligne.
+  objective     String      @default("") // ce que l'agent cherche à accomplir
+  capabilities  String      @default("") // compétences et promesses tenues
+  tools         String      @default("") // outils embarqués
+  llmModel      String      @default("") // modèle(s) de langage utilisé(s)
+  prompts       String      @default("") // prompts système et techniques fournis
+  runtime       String      @default("") // langage, version, point d'entrée
+  protocol      String      @default("") // "CLI" | "MCP" | "A2A" | "HTTP" | "LIBRARY" | "OTHER"
+  standalone    Boolean     @default(false) // fonctionne sans dépendance externe
+  dependencies  String      @default("") // dépendances requises si non autonome
+  requirements  String      @default("") // puissance requise (CPU, RAM, GPU)
+  usage         String      @default("") // comment l'appeler
+  inputs        String      @default("") // ce que l'agent accepte en entrée
+  outputs       String      @default("") // ce que l'agent renvoie
   license       String?
   sourceUrl     String?
   authorId      String
@@ -58,6 +73,8 @@ model AgentFile {
   storageKey   String   @unique
   sizeBytes    Int
   sha256       String
+  entries      String   @default("") // fichiers contenus dans l'archive, un par ligne
+  hasManifest  Boolean  @default(false) // contient un agent.json
   createdAt    DateTime @default(now())
 
   @@unique([agentId, version])

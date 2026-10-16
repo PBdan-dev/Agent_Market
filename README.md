@@ -1,11 +1,11 @@
 # Agent Market
 
-Place de marché d'agents IA en deux parties :
+Place de marché d'agents IA. Dès l'accueil, chaque agent est une tuile cliquable ; sa fiche dit ce qu'il sait faire, ce qu'il requiert et comment l'appeler.
 
-- **Agents téléchargeables** : le créateur publie une archive de code (`.zip`, `.tar.gz`, `.tgz`), l'utilisateur la télécharge et la branche sur son orchestrateur.
-- **Agents à louer** : le créateur héberge son service et fixe un prix. La fiche est publiée ; la location en ligne (appel du service, paiement, commission) viendra ensuite.
+- **Agents téléchargeables** : le créateur publie un package (`.zip`, `.tar.gz`, `.tgz`) contenant code, prompts, outils et un fichier `agent.json` ; l'utilisateur le télécharge et l'exécute chez lui.
+- **Agents à louer** : le créateur héberge son service et fixe un prix. La fiche décrit le contrat d'appel ; la location en ligne (appel du service, paiement, commission) viendra ensuite.
 
-Les agents sont classés par **catégorie**, **thème** et **technologie**, filtrables dans chaque catalogue.
+Les agents sont classés par **catégorie**, **thème** et **technologie**. Le format du package est décrit sur la page `/format` du site et illustré par les trois agents d'exemple du dossier `examples/`.
 
 ## Stack
 
@@ -18,9 +18,11 @@ Les agents sont classés par **catégorie**, **thème** et **technologie**, filt
 
 ### Option 1 : dans le navigateur, sans rien installer (GitHub Codespaces)
 
-1. Sur la page GitHub du dépôt, bouton vert **Code** → onglet **Codespaces** → **Create codespace on main** (ou sur la branche à tester).
+1. Ouvrir https://codespaces.new/PBdan-dev/Agent_Market (ou, pour une branche en cours : bouton **Code** → **Codespaces** sur la page du dépôt).
 2. Attendre l'installation (quelques minutes la première fois). Le site démarre seul et s'ouvre dans un nouvel onglet.
 3. Si l'onglet ne s'ouvre pas : onglet **Ports** en bas de l'éditeur → ligne 3000 → icône globe.
+
+**Mettre à jour un codespace existant** après une nouvelle version du code : dans le terminal, `Ctrl+C` pour arrêter le site, puis `npm run maj`. La commande récupère le code, met la base à jour et relance le site.
 
 ### Option 2 : sur votre ordinateur
 
@@ -30,33 +32,52 @@ Prérequis : [Node.js 22](https://nodejs.org) et Git.
 git clone https://github.com/PBdan-dev/Agent_Market.git
 cd Agent_Market
 npm install
-npm run setup     # crée .env, la base de données et le contenu de démonstration
-npm run dev       # puis ouvrir http://localhost:3000
+npm run dev       # prépare tout (.env, base, exemples) puis ouvre http://localhost:3000
 ```
 
-### Contenu de test
+### Contenu et compte de test
 
-`npm run setup` ajoute 9 agents de démonstration (5 téléchargeables, 4 à louer) avec leurs tags. Il peut être relancé sans créer de doublons.
+Au démarrage, le site charge les trois agents d'exemple (2 téléchargeables avec un vrai package, 1 à louer) et crée un compte de test :
+`pb.dandois@gmail.com` / `PB1234` (uniquement en développement, via `npm run setup`). Le compte « Agent Market » qui publie les exemples n'a pas de mot de passe.
 
-Compte de démonstration : `demo@agent-market.local` / `demo-demo-demo`. Pour ajouter vos propres agents, créez un compte ou connectez-vous, puis **Publier un agent**.
+### Scénario de test complet
+
+1. Accueil : les agents en tuiles, filtres par type et par tags.
+2. Cliquer une tuile : la fiche (objectif, compétences, outils, modèle, dépendances, puissance, appel, contenu du package), puis **Télécharger**.
+3. **Publier un agent** → page de connexion → entrer le compte de test.
+4. Remplir le formulaire (8 étapes) et envoyer une archive, par exemple celle téléchargée à l'étape 2.
+5. Le nouvel agent apparaît sur l'accueil et dans **Mes agents**. Il peut être supprimé depuis sa fiche, puis le scénario recommence.
+
+Les agents d'exemple reviennent à chaque démarrage s'ils ont été supprimés.
+
+### Lancer un agent d'exemple
+
+Les packages de `examples/` fonctionnent réellement, avec [Ollama](https://ollama.com) et le modèle `llama3.2` :
+
+```bash
+cd examples/resumeur-documents && python3 agent.py exemples/article.md --longueur court
+cd examples/questions-dossier && node agent.mjs exemples/notes "Quand a lieu la prochaine réunion ?"
+```
 
 ## Vérifications
 
 ```bash
 npm run lint    # vérification des types
-npm test        # tests unitaires (validation, archives, stockage)
+npm test        # tests unitaires (validation, archives, manifeste, stockage)
 npm run build
 ```
+
+En production : `npx prisma migrate deploy` puis `npm run db:seed` (tags et agents d'exemple, sans compte de test).
 
 ## Pages
 
 | Route | Rôle |
 |---|---|
-| `/` | Accueil : les deux parties du site et les derniers agents |
-| `/telecharger` | Catalogue des agents téléchargeables (recherche, filtres par tag, tri) |
-| `/louer` | Catalogue des agents à louer |
-| `/agents/[slug]` | Fiche d'un agent ; téléchargement et historique des versions ; gestion par l'auteur |
-| `/publier` | Publication d'un agent (connexion requise) |
+| `/` | Accueil : tous les agents en tuiles, recherche, filtres par type et par tags |
+| `/telecharger`, `/louer` | Le même catalogue limité à un type |
+| `/agents/[slug]` | Fiche d'identité de l'agent ; téléchargement, versions, contenu du package ; gestion par l'auteur |
+| `/format` | Le format d'un package d'agent (agent.json, structure, règles) |
+| `/publier` | Publication d'un agent en 8 étapes (connexion requise) |
 | `/mes-agents` | Agents publiés par l'utilisateur connecté |
 | `/api/agents/[slug]/download` | Téléchargement de la dernière version (ou `?version=`) |
 
@@ -65,7 +86,7 @@ npm run build
 - Extension **et** signature binaire vérifiées : un fichier renommé en `.zip` est refusé.
 - Taille limitée par `MAX_UPLOAD_MB` (50 Mo par défaut).
 - Nom de stockage aléatoire, jamais le nom envoyé ; téléchargement forcé en pièce jointe avec `nosniff`.
-- Empreinte SHA-256 affichée pour chaque version.
+- Empreinte SHA-256 affichée pour chaque version ; la liste des fichiers de l'archive est lue sans extraction et affichée sur la fiche.
 - Le code n'est **pas** analysé : un avertissement l'indique sur chaque fiche. Une analyse antivirus et une modération sont nécessaires avant une ouverture publique.
 
 ## Mise en production (non faite)

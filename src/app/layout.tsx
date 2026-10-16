@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { logout } from "./actions/auth";
+import { Background } from "@/components/Background";
+import { MotionGuard } from "@/components/MotionGuard";
+import { SiteNav } from "@/components/SiteNav";
 import { currentUser } from "@/lib/session";
 import "./globals.css";
 
@@ -15,42 +18,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="fr">
       <body className="flex min-h-screen flex-col">
-        <header className="border-b border-slate-200 bg-white">
-          <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-            <Link href="/" className="text-lg font-bold tracking-tight">
-              Agent Market
+        <Background />
+        <MotionGuard />
+        <SiteNav user={user ? { name: user.name } : null} logout={logout} />
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">{children}</main>
+        <footer className="border-t border-line py-6">
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-xs text-faint sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <span>Agent Market · le code des agents téléchargeables est publié par leurs auteurs et n&apos;est pas audité par la plateforme.</span>
+            <Link href="/format" className="hover:text-muted">
+              Format d&apos;un package d&apos;agent
             </Link>
-            <Link href="/telecharger" className="text-sm text-slate-700 hover:text-slate-950">
-              Téléchargeables
-            </Link>
-            <Link href="/louer" className="text-sm text-slate-700 hover:text-slate-950">
-              À louer
-            </Link>
-            <div className="ml-auto flex items-center gap-3">
-              <Link href="/publier" className="btn-primary">
-                Publier un agent
-              </Link>
-              {user ? (
-                <>
-                  <Link href="/mes-agents" className="text-sm text-slate-700 hover:text-slate-950">
-                    Mes agents
-                  </Link>
-                  <form action={logout}>
-                    <button className="text-sm text-slate-500 hover:text-slate-900">Déconnexion</button>
-                  </form>
-                </>
-              ) : (
-                <Link href="/connexion" className="text-sm text-slate-700 hover:text-slate-950">
-                  Connexion
-                </Link>
-              )}
-            </div>
-          </nav>
-        </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
-        <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-          Agent Market · Le code des agents téléchargeables est publié par leurs auteurs et n&apos;est pas audité par la
-          plateforme.
+          </div>
         </footer>
       </body>
     </html>

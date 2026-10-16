@@ -1,0 +1,62 @@
+openapi: 3.1.0
+info:
+  title: Mesh 3D sur Blender
+  version: 1.0.0
+  description: Génération d'un mesh 3D à partir d'une description. Service hébergé par le créateur.
+servers:
+  - url: https://mesh.exemple.agent-market/v1
+paths:
+  /jobs:
+    post:
+      summary: Créer un job de génération
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt: { type: string, description: Description de l'objet à générer }
+                format: { type: string, enum: [glb, fbx, obj], default: glb }
+                max_triangles: { type: integer, minimum: 500, maximum: 50000, default: 50000 }
+      responses:
+        "202":
+          description: Job accepté
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+                  status: { type: string, enum: [queued] }
+                  estimated_seconds: { type: integer }
+        "422": { description: Demande hors périmètre (non facturée) }
+  /jobs/{job_id}:
+    get:
+      summary: État et résultat d'un job
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: job_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: État du job
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+                  status: { type: string, enum: [queued, running, done, failed] }
+                  error: { type: string }
+                  result:
+                    type: object
+                    properties:
+                      mesh_url: { type: string, format: uri }
+                      previews: { type: array, items: { type: string, format: uri } }
+                      triangles: { type: integer }
+                      manifold: { type: boolean }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }

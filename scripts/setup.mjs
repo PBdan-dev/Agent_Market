@@ -1,7 +1,7 @@
-// Prépare une installation locale en une commande : npm run setup
+// Prépare une installation locale en une commande : npm run setup (lancé aussi avant npm run dev)
 // 1. crée .env (avec un secret de session aléatoire) s'il n'existe pas
 // 2. crée ou met à jour la base de données
-// 3. ajoute les tags de départ et les agents de démonstration
+// 3. ajoute les tags, les agents d'exemple et le compte de test
 import { execSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -18,6 +18,4 @@ if (!existsSync(".env")) {
 const run = (cmd) => execSync(cmd, { stdio: "inherit" });
 run("npx prisma migrate deploy");
 run("npx tsx prisma/seed.ts --demo");
-
-console.log("\n✓ Prêt. Lancez « npm run dev » puis ouvrez http://localhost:3000");
-console.log("  Compte de démonstration : demo@agent-market.local / demo-demo-demo");
+console.log("✓ Base de données prête");

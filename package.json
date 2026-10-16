@@ -3,16 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/setup.mjs",
     "dev": "next dev",
+    "maj": "git pull --ff-only && npm install && npm run dev",
     "build": "next build",
     "start": "next start",
+    "setup": "node scripts/setup.mjs",
+    "db:seed": "tsx prisma/seed.ts",
     "lint": "tsc --noEmit",
     "test": "vitest run",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate",
-    "setup": "node scripts/setup.mjs"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

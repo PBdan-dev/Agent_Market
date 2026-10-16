@@ -1,16 +1,24 @@
 import Link from "next/link";
-import { KIND_PATHS, TAG_GROUP_LABELS, type AgentKind, type TagGroup } from "@/lib/constants";
-import { listAgents, tagsInUse, type CatalogFilters } from "@/lib/queries";
+import { KIND_PATHS, TAG_GROUP_LABELS, type CatalogKind } from "@/lib/constants";
+import { FILTER_PARAMS, listAgents, tagsInUse, type CatalogFilters } from "@/lib/queries";
 import { AgentGrid } from "./AgentCard";
 
-const PARAM_BY_GROUP: Record<TagGroup, "categorie" | "theme" | "techno"> = {
-  CATEGORY: "categorie",
-  THEME: "theme",
-  TECHNOLOGY: "techno",
-};
+const SEGMENTS: { kind: CatalogKind; label: string }[] = [
+  { kind: "ALL", label: "Tous" },
+  { kind: "DOWNLOAD", label: "Téléchargeables" },
+  { kind: "RENTAL", label: "À louer" },
+];
 
 function first(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value || undefined;
+  const v = Array.isArray(value) ? value[0] : value;
+  return v || undefined;
+}
+
+function withParams(base: string, filters: CatalogFilters, patch: Partial<CatalogFilters>): string {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries({ ...filters, ...patch })) if (v) params.set(k, v);
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
 }
 
 export async function Catalog({
@@ -19,7 +27,7 @@ export async function Catalog({
   intro,
   searchParams,
 }: {
-  kind: AgentKind;
+  kind: CatalogKind;
   title: string;
   intro: string;
   searchParams: Record<string, string | string[] | undefined>;
@@ -29,58 +37,92 @@ export async function Catalog({
     categorie: first(searchParams.categorie),
     theme: first(searchParams.theme),
     techno: first(searchParams.techno),
-    tri: first(searchParams.tri),
   };
   const [agents, tags] = await Promise.all([listAgents(kind, filters), tagsInUse(kind)]);
   const hasFilters = Object.values(filters).some(Boolean);
+  const categories = tags.filter((t) => t.group === "CATEGORY");
+  const base = KIND_PATHS[kind];
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="mt-1 text-slate-600">{intro}</p>
+      <div className="animate-fade-up">
+        <p className="mono-label">Agents IA · téléchargeables et à louer</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+        <p className="mt-2 max-w-2xl text-muted">{intro}</p>
+      </div>
 
-      <form method="get" className="mt-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-6">
-        <input
-          name="q"
-          defaultValue={filters.q}
-          placeholder="Rechercher un agent…"
-          className="input lg:col-span-2"
-          aria-label="Recherche"
-        />
-        {(Object.keys(PARAM_BY_GROUP) as TagGroup[]).map((group) => {
-          const param = PARAM_BY_GROUP[group];
-          return (
-            <select key={group} name={param} defaultValue={filters[param] ?? ""} className="input" aria-label={TAG_GROUP_LABELS[group]}>
-              <option value="">{TAG_GROUP_LABELS[group]} : toutes</option>
-              {tags
-                .filter((t) => t.group === group)
-                .map((t) => (
-                  <option key={t.id} value={t.slug}>
-                    {t.name}
-                  </option>
-                ))}
-            </select>
-          );
-        })}
-        <div className="flex gap-2">
-          {kind === "DOWNLOAD" && (
-            <select name="tri" defaultValue={filters.tri ?? ""} className="input" aria-label="Tri">
-              <option value="">Récents</option>
-              <option value="populaires">Populaires</option>
-            </select>
-          )}
-          <button className="btn-primary">Filtrer</button>
+      <div className="mt-7 flex flex-col gap-4 animate-fade-up" style={{ animationDelay: "80ms" }}>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex rounded-xl border border-line bg-surface p-1" role="tablist" aria-label="Type d'agent">
+            {SEGMENTS.map((s) => (
+              <Link
+                key={s.kind}
+                href={withParams(KIND_PATHS[s.kind], filters, {})}
+                role="tab"
+                aria-selected={s.kind === kind}
+                className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+                  s.kind === kind ? "bg-mint/15 text-mint shadow-[inset_0_0_0_1px_rgba(62,240,198,0.4)]" : "text-muted hover:text-text"
+                }`}
+              >
+                {s.label}
+              </Link>
+            ))}
+          </div>
+
+          <form method="get" action={base} className="flex flex-1 flex-wrap gap-2 sm:min-w-[320px]">
+            <input
+              name="q"
+              defaultValue={filters.q}
+              placeholder="Rechercher un agent, une capacité…"
+              className="input min-w-[180px] flex-1"
+              aria-label="Recherche"
+            />
+            {(["THEME", "TECHNOLOGY"] as const).map((group) => {
+              const param = FILTER_PARAMS[group];
+              const options = tags.filter((t) => t.group === group);
+              return (
+                <select key={group} name={param} defaultValue={filters[param] ?? ""} className="input w-auto" aria-label={TAG_GROUP_LABELS[group]}>
+                  <option value="">{TAG_GROUP_LABELS[group]}</option>
+                  {options.map((t) => (
+                    <option key={t.id} value={t.slug}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              );
+            })}
+            {filters.categorie && <input type="hidden" name="categorie" value={filters.categorie} />}
+            <button className="btn-secondary">Filtrer</button>
+          </form>
         </div>
-      </form>
-      {hasFilters && (
-        <p className="mt-2 text-sm">
-          <Link href={KIND_PATHS[kind]} className="text-slate-600 underline">
-            Effacer les filtres
-          </Link>
-        </p>
-      )}
 
-      <div className="mt-6">
+        {categories.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href={withParams(base, filters, { categorie: undefined })} className={`chip ${!filters.categorie ? "chip-active" : ""}`}>
+              Toutes catégories
+            </Link>
+            {categories.map((c) => (
+              <Link
+                key={c.id}
+                href={withParams(base, filters, { categorie: filters.categorie === c.slug ? undefined : c.slug })}
+                className={`chip ${filters.categorie === c.slug ? "chip-active" : ""}`}
+              >
+                {c.name}
+              </Link>
+            ))}
+            {hasFilters && (
+              <Link href={base} className="ml-auto text-xs text-muted underline-offset-4 hover:text-text hover:underline">
+                Effacer les filtres
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-8">
+        <p className="mb-3 text-xs text-faint">
+          {agents.length} agent{agents.length > 1 ? "s" : ""}
+        </p>
         <AgentGrid
           agents={agents}
           empty={hasFilters ? "Aucun agent ne correspond à ces filtres." : "Aucun agent publié pour l'instant."}

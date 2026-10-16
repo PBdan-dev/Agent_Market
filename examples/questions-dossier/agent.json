@@ -1,0 +1,61 @@
+{
+  "schema": "agent-market/v1",
+  "name": "Questions sur un dossier",
+  "version": "1.0.0",
+  "kind": "download",
+  "summary": "Répond à vos questions sur les fichiers d'un dossier en allant lire lui-même les documents utiles.",
+  "objective": "Trouver la réponse à une question dans les fichiers texte d'un dossier (notes, comptes rendus, documentation) en utilisant des outils de liste, de lecture et de recherche, puis répondre en citant les fichiers consultés.",
+  "capabilities": [
+    "Liste, cherche et lit seul les fichiers texte d'un dossier (.md, .txt, .csv, .json, .yaml, .html, code source)",
+    "Choisit lui-même les fichiers pertinents grâce à l'appel d'outils (function calling)",
+    "Cite les fichiers utilisés dans sa réponse",
+    "Dit clairement quand l'information n'est pas dans le dossier, plutôt que d'inventer",
+    "Mode interactif : plusieurs questions à la suite sur le même dossier",
+    "Ne sort jamais du dossier indiqué et n'écrit aucun fichier"
+  ],
+  "tags": {
+    "category": ["Recherche"],
+    "theme": ["Documents", "Automatisation"],
+    "technology": ["Node.js", "Ollama"]
+  },
+  "model": {
+    "name": "llama3.2 (3 milliards de paramètres)",
+    "provider": "Ollama, en local",
+    "alternatives": "tout serveur compatible OpenAI qui gère l'appel d'outils (LM Studio, vLLM, OpenAI…) via AGENT_API_URL, AGENT_MODEL et AGENT_API_KEY",
+    "note": "Le modèle n'est pas inclus dans l'archive. Il doit gérer l'appel d'outils (c'est le cas de llama3.2, qwen2.5, mistral-nemo)."
+  },
+  "prompts": {
+    "system": "prompts/system.md",
+    "note": "Le prompt système décrit la méthode (chercher, lire, citer) et interdit d'inventer."
+  },
+  "tools": [
+    { "name": "lister_fichiers", "description": "liste les fichiers texte du dossier ou d'un sous-dossier, avec leur taille" },
+    { "name": "lire_fichier", "description": "renvoie le contenu d'un fichier, tronqué à 12 000 caractères" },
+    { "name": "chercher", "description": "cherche un mot ou une expression dans tous les fichiers et renvoie les lignes trouvées" }
+  ],
+  "runtime": {
+    "language": "Node.js 18 ou plus, sans dépendance npm",
+    "entrypoint": "agent.mjs",
+    "protocol": "CLI"
+  },
+  "dependencies": {
+    "standalone": false,
+    "requires": [
+      "Node.js 18 ou plus",
+      "Ollama 0.3 ou plus, lancé sur la machine (ollama serve)",
+      "Le modèle llama3.2 téléchargé (ollama pull llama3.2, environ 2 Go)"
+    ]
+  },
+  "requirements": {
+    "cpu": "4 cœurs suffisent",
+    "ram": "8 Go recommandés pour llama3.2",
+    "gpu": "optionnel",
+    "note": "Une question demande en général 2 à 4 appels au modèle, soit 10 à 40 secondes sans GPU."
+  },
+  "io": {
+    "inputs": "Un chemin de dossier et une question en langage naturel (ou aucune question pour le mode interactif)",
+    "outputs": "Une réponse en texte, avec la liste des fichiers consultés"
+  },
+  "usage": "node agent.mjs ./mes-notes \"Quelle est la date de la prochaine réunion ?\"\nnode agent.mjs ./mes-notes            # mode interactif\nnode agent.mjs ./mes-notes --verbeux \"...\"   # affiche les outils appelés",
+  "license": "MIT"
+}

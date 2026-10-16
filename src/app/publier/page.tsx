@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/session";
@@ -13,11 +14,17 @@ export default async function PublishPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold">Publier un agent</h1>
-      <p className="mt-1 text-slate-600">
-        Un agent téléchargeable est une archive de code que les utilisateurs exécutent chez eux. Un agent à louer est un
-        service que vous hébergez vous-même.
-      </p>
+      <div className="animate-fade-up">
+        <p className="mono-label">Publication</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight">Publier un agent</h1>
+        <p className="mt-2 text-muted">
+          Remplis la fiche d&apos;identité de ton agent : c&apos;est ce que verront les visiteurs. Les champs marqués * sont obligatoires.{" "}
+          <Link href="/format" className="text-mint hover:underline">
+            Voir le format du package
+          </Link>
+          .
+        </p>
+      </div>
       <PublishForm
         tags={tags}
         maxUploadMb={Number(process.env.MAX_UPLOAD_MB ?? 50)}

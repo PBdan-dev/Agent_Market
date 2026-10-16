@@ -2,17 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { detectArchiveExtension } from "@/lib/archive";
+import { detectArchiveExtension, findManifest, listArchiveEntries } from "@/lib/archive";
 import { maxUploadBytes, type TagGroup } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { slugify } from "@/lib/slug";
 import { deleteFile, saveFile } from "@/lib/storage";
-import { agentSchema, downloadAgentSchema, parseTagList } from "@/lib/validation";
+import { agentSchema, parseTagList, versionSchema } from "@/lib/validation";
 
 export type FormState =
   | { error: string; values?: Record<string, string | string[]> }
   | undefined;
+
+type Archive = { data: Uint8Array; ext: string; entries: string[]; hasManifest: boolean };
 
 function formValues(formData: FormData): Record<string, string | string[]> {
   const values: Record<string, string | string[]> = {};
@@ -24,7 +26,7 @@ function formValues(formData: FormData): Record<string, string | string[]> {
   return values;
 }
 
-async function readArchive(formData: FormData): Promise<{ data: Uint8Array; ext: string } | string> {
+async function readArchive(formData: FormData): Promise<Archive | string> {
   const file = formData.get("archive");
   if (!(file instanceof File) || file.size === 0) return "Ajoute l'archive de l'agent (.zip, .tar.gz ou .tgz).";
   if (file.size > maxUploadBytes()) {
@@ -33,7 +35,14 @@ async function readArchive(formData: FormData): Promise<{ data: Uint8Array; ext:
   const data = new Uint8Array(await file.arrayBuffer());
   const ext = detectArchiveExtension(file.name, data.subarray(0, 4));
   if (!ext) return "Format refusé : seules les archives .zip, .tar.gz et .tgz valides sont acceptées.";
-  return { data, ext };
+  let entries: string[];
+  try {
+    entries = listArchiveEntries(data, ext);
+  } catch {
+    return "Archive illisible : vérifie qu'elle s'ouvre correctement sur ton ordinateur.";
+  }
+  if (entries.length === 0) return "L'archive est vide.";
+  return { data, ext, entries, hasManifest: Boolean(findManifest(entries)) };
 }
 
 async function uniqueSlug(name: string): Promise<string> {
@@ -62,6 +71,18 @@ async function resolveTagIds(tagIds: string[], newTags: [TagGroup, string[]][]):
   return [...ids];
 }
 
+function fileRecord(version: string, archive: Archive, stored: { key: string; size: number; sha256: string }) {
+  return {
+    version,
+    extension: archive.ext,
+    storageKey: stored.key,
+    sizeBytes: stored.size,
+    sha256: stored.sha256,
+    entries: archive.entries.join("\n"),
+    hasManifest: archive.hasManifest,
+  };
+}
+
 export async function createAgent(_: FormState, formData: FormData): Promise<FormState> {
   const user = await currentUser();
   if (!user) redirect("/connexion?next=/publier");
@@ -82,7 +103,7 @@ export async function createAgent(_: FormState, formData: FormData): Promise<For
   const categories = await db.tag.count({ where: { id: { in: input.tagIds }, group: "CATEGORY" } });
   if (categories === 0) return { error: "Choisis au moins une catégorie.", values };
 
-  let archive: { data: Uint8Array; ext: string } | undefined;
+  let archive: Archive | undefined;
   if (input.kind === "DOWNLOAD") {
     const result = await readArchive(formData);
     if (typeof result === "string") return { error: result, values };
@@ -103,7 +124,20 @@ export async function createAgent(_: FormState, formData: FormData): Promise<For
         kind: input.kind,
         name: input.name,
         summary: input.summary,
-        description: input.description,
+        objective: input.objective,
+        description: input.description ?? "",
+        capabilities: input.capabilities,
+        tools: input.tools ?? "",
+        llmModel: input.llmModel ?? "",
+        prompts: input.prompts ?? "",
+        runtime: input.runtime ?? "",
+        protocol: input.protocol,
+        standalone: input.standalone === "yes",
+        dependencies: input.standalone === "yes" ? "" : (input.dependencies ?? ""),
+        requirements: input.requirements ?? "",
+        usage: input.usage,
+        inputs: input.inputs ?? "",
+        outputs: input.outputs ?? "",
         license: input.license,
         sourceUrl: input.sourceUrl,
         authorId: user.id,
@@ -117,15 +151,7 @@ export async function createAgent(_: FormState, formData: FormData): Promise<For
         tags: { create: tagIds.map((tagId) => ({ tagId })) },
         files:
           input.kind === "DOWNLOAD" && stored && archive
-            ? {
-                create: {
-                  version: input.version,
-                  extension: archive.ext,
-                  storageKey: stored.key,
-                  sizeBytes: stored.size,
-                  sha256: stored.sha256,
-                },
-              }
+            ? { create: fileRecord(input.version, archive, stored) }
             : undefined,
       },
     });
@@ -146,7 +172,7 @@ export async function addVersion(_: FormState, formData: FormData): Promise<Form
   const agent = await db.agent.findUnique({ where: { id: agentId }, include: { files: true } });
   if (!agent || agent.authorId !== user.id || agent.kind !== "DOWNLOAD") return { error: "Agent introuvable." };
 
-  const version = downloadAgentSchema.shape.version.safeParse(formData.get("version") ?? "");
+  const version = versionSchema.safeParse(formData.get("version") ?? "");
   if (!version.success) return { error: version.error.issues[0].message };
   if (agent.files.some((f) => f.version === version.data)) return { error: "Cette version existe déjà." };
 
@@ -155,16 +181,7 @@ export async function addVersion(_: FormState, formData: FormData): Promise<Form
 
   const stored = await saveFile(archive.data);
   try {
-    await db.agentFile.create({
-      data: {
-        agentId: agent.id,
-        version: version.data,
-        extension: archive.ext,
-        storageKey: stored.key,
-        sizeBytes: stored.size,
-        sha256: stored.sha256,
-      },
-    });
+    await db.agentFile.create({ data: { agentId: agent.id, ...fileRecord(version.data, archive, stored) } });
     await db.agent.update({ where: { id: agent.id }, data: { updatedAt: new Date() } });
   } catch (err) {
     await deleteFile(stored.key);

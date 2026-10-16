@@ -2,10 +2,11 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="py-16 text-center">
-      <h1 className="text-2xl font-bold">Page introuvable</h1>
-      <Link href="/" className="mt-4 inline-block text-slate-600 underline">
-        Retour à l&apos;accueil
+    <div className="animate-fade-up py-20 text-center">
+      <p className="mono-label">Erreur 404</p>
+      <h1 className="mt-2 text-2xl font-bold">Page introuvable</h1>
+      <Link href="/" className="btn-secondary mt-6">
+        Retour au catalogue
       </Link>
     </div>
   );
