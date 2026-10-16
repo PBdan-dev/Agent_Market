@@ -67,7 +67,7 @@ npm test        # tests unitaires (validation, archives, manifeste, stockage)
 npm run build
 ```
 
-En production : `npx prisma migrate deploy` puis `npm run db:seed` (tags et agents d'exemple, sans compte de test).
+En production : `npx prisma migrate deploy` puis `npm run db:seed` (tags et agents d'exemple, sans compte de test). Derrière un proxy dont le domaine diffère de l'hôte vu par le serveur, déclarer ce domaine dans `ALLOWED_ORIGINS` (sinon Next.js refuse les formulaires : « Invalid Server Actions request »).
 
 ## Pages
 
