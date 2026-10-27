@@ -4,9 +4,10 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { detectArchiveExtension, downloadFilename, findManifest, listArchiveEntries } from "@/lib/archive";
-import { manifestSchema, manifestToAgentFields } from "@/lib/manifest";
+import { isOneClickInstallable, manifestSchema, manifestToAgentFields, publicManifest } from "@/lib/manifest";
+import { manifestToFormValues } from "@/lib/manifest-form";
 import { slugify } from "@/lib/slug";
-import { agentSchema, parseTagList } from "@/lib/validation";
+import { agentSchema, formToManifest, parseTagList } from "@/lib/validation";
 import { buildZip } from "@/lib/zip-build";
 import resumeur from "../examples/resumeur-documents/agent.json";
 import questions from "../examples/questions-dossier/agent.json";
@@ -95,56 +96,101 @@ describe("agentSchema", () => {
     summary: "Un agent pour tester.",
     objective: "Vérifier que la validation du formulaire fonctionne.",
     capabilities: "Fait une chose\nEn fait une autre",
+    modelUses: "host",
     protocol: "CLI",
     standalone: "yes",
-    usage: "python agent.py",
+    os: [],
     tagIds: [],
     newThemes: [],
     newTechnologies: [],
     sourceUrl: "",
   };
+  const download = { ...base, kind: "DOWNLOAD", version: "1.0.0", permFiles: "read", permNetwork: "none" };
   it("valide un agent téléchargeable autonome", () => {
-    expect(agentSchema.safeParse({ ...base, kind: "DOWNLOAD", version: "1.0.0" }).success).toBe(true);
+    expect(agentSchema.safeParse(download).success).toBe(true);
   });
   it("exige la liste des dépendances quand l'agent n'est pas autonome", () => {
-    const r = agentSchema.safeParse({ ...base, kind: "DOWNLOAD", version: "1.0.0", standalone: "no" });
+    const r = agentSchema.safeParse({ ...download, standalone: "no" });
     expect(r.success).toBe(false);
     expect(!r.success && r.error.issues[0].message).toMatch(/dépendances/);
-    expect(agentSchema.safeParse({ ...base, kind: "DOWNLOAD", version: "1.0.0", standalone: "no", dependencies: "Ollama" }).success).toBe(true);
+    expect(agentSchema.safeParse({ ...download, standalone: "no", dependencies: "Ollama" }).success).toBe(true);
+  });
+  it("exige langage et point d'entrée pour un serveur MCP téléchargeable", () => {
+    const r = agentSchema.safeParse({ ...download, protocol: "MCP" });
+    expect(!r.success && r.error.issues[0].message).toMatch(/point d'entrée/);
+    expect(agentSchema.safeParse({ ...download, protocol: "MCP", runtimeLanguage: "node", entrypoint: "server/index.mjs" }).success).toBe(true);
   });
   it("refuse une version invalide et un mode d'appel inconnu", () => {
-    expect(agentSchema.safeParse({ ...base, kind: "DOWNLOAD", version: "../x" }).success).toBe(false);
-    expect(agentSchema.safeParse({ ...base, kind: "DOWNLOAD", version: "1.0.0", protocol: "TELEPATHIE" }).success).toBe(false);
+    expect(agentSchema.safeParse({ ...download, version: "../x" }).success).toBe(false);
+    expect(agentSchema.safeParse({ ...download, version: "v2" }).success).toBe(false);
+    expect(agentSchema.safeParse({ ...download, protocol: "TELEPATHIE" }).success).toBe(false);
   });
-  it("convertit le prix d'un agent à louer", () => {
-    const r = agentSchema.safeParse({ ...base, kind: "RENTAL", endpointUrl: "", priceEuros: "4,50", priceUnit: "" });
+  it("convertit le prix d'un agent à louer et lit son contrat", () => {
+    const r = agentSchema.safeParse({ ...base, kind: "RENTAL", endpointUrl: "", priceEuros: "4,50", priceUnit: "", inputSchema: "" });
     expect(r.success && r.data.kind === "RENTAL" && r.data.priceEuros).toBe(4.5);
+    const bad = agentSchema.safeParse({ ...base, kind: "RENTAL", endpointUrl: "", priceEuros: "", inputSchema: "{pas du json" });
+    expect(!bad.success && bad.error.issues[0].message).toMatch(/JSON invalide/);
   });
   it("refuse une URL non http", () => {
     const r = agentSchema.safeParse({ ...base, kind: "RENTAL", endpointUrl: "javascript:alert(1)", priceEuros: "" });
     expect(r.success).toBe(false);
   });
+  it("produit un manifeste v2 valide à partir du formulaire", () => {
+    const parsed = agentSchema.parse({
+      ...download,
+      protocol: "MCP",
+      runtimeLanguage: "node",
+      entrypoint: "server/index.mjs",
+      tools: "chercher : cherche un mot\nlire",
+      parameters: JSON.stringify([{ key: "dossier", type: "directory", label: "Dossier", required: true }]),
+      ramGb: "0,5",
+      os: ["win32"],
+    });
+    const m = formToManifest(parsed, { category: ["Recherche"], theme: [], technology: ["MCP"] });
+    expect(m.runtime).toEqual({ language: "node", entrypoint: "server/index.mjs" });
+    expect(m.tools).toEqual([{ name: "chercher", description: "cherche un mot" }, { name: "lire" }]);
+    expect(m.parameters?.[0].key).toBe("dossier");
+    expect(m.requirements).toEqual({ ramGb: 0.5, os: ["win32"] });
+    expect(isOneClickInstallable(m)).toBe(true);
+  });
 });
 
 describe("manifeste agent.json", () => {
   it("valide les trois exemples du dépôt", () => {
-    for (const m of [resumeur, questions, mesh]) expect(manifestSchema.safeParse(m).success).toBe(true);
+    for (const m of [resumeur, questions, mesh]) {
+      const r = manifestSchema.safeParse(m);
+      expect(r.success, JSON.stringify(!r.success && r.error.issues)).toBe(true);
+    }
   });
   it("aplatit un manifeste vers la fiche", () => {
     const fields = manifestToAgentFields(manifestSchema.parse(resumeur));
     expect(fields.kind).toBe("DOWNLOAD");
-    expect(fields.protocol).toBe("CLI");
-    expect(fields.standalone).toBe(false);
-    expect(fields.dependencies.split("\n")).toHaveLength(3);
-    expect(fields.tools).toContain("lecture de fichier : ");
-    expect(fields.llmModel).toContain("Alternatives : ");
+    expect(fields.protocol).toBe("MCP");
+    expect(fields.standalone).toBe(true);
+    expect(fields.tools).toContain("resumer_document : ");
+    expect(fields.llmModel).toContain("Recommandés : llama3.2");
+    expect(fields.requirements).toContain("RAM : 102 Mo");
+    expect(JSON.parse(fields.manifest).schema).toBe("agent-market/v2");
     const rental = manifestToAgentFields(manifestSchema.parse(mesh));
     expect(rental.kind).toBe("RENTAL");
     expect(rental.priceCents).toBe(500);
     expect(rental.priceUnit).toBe("par mesh");
+    expect(rental.endpointUrl).toBe("demo:mesh-blender");
   });
-  it("refuse un manifeste sans compétences", () => {
+  it("ne divulgue pas l'adresse privée d'un loueur", () => {
+    expect(publicManifest(manifestSchema.parse(mesh)).rental).not.toHaveProperty("endpoint");
+  });
+  it("refuse un manifeste sans compétences, ou un serveur MCP sans point d'entrée", () => {
     expect(manifestSchema.safeParse({ ...resumeur, capabilities: [] }).success).toBe(false);
+    expect(manifestSchema.safeParse({ ...resumeur, runtime: undefined }).success).toBe(false);
+    expect(manifestSchema.safeParse({ ...resumeur, runtime: { language: "node", entrypoint: "../evil.js" } }).success).toBe(false);
+  });
+  it("préremplit le formulaire à partir d'un agent.json", () => {
+    const p = manifestToFormValues(questions);
+    expect(p.fields).toMatchObject({ name: "Questions sur un dossier", protocol: "MCP", runtimeLanguage: "node", entrypoint: "server/index.mjs", standalone: "yes", permFiles: "read" });
+    expect(p.parameters?.[0]).toMatchObject({ key: "dossier", type: "directory", required: true });
+    expect(p.tags.technology).toEqual(["MCP", "Node.js"]);
+    expect(manifestToFormValues("n'importe quoi").fields).toEqual({});
   });
 });
 

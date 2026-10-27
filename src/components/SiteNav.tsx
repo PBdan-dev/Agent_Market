@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/", label: "Catalogue" },
   { href: "/telecharger", label: "Téléchargeables" },
   { href: "/louer", label: "À louer" },
+  { href: "/connecter", label: "Connecter mon agent" },
   { href: "/format", label: "Format d'agent" },
 ];
 

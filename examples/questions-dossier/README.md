@@ -1,54 +1,40 @@
 # Questions sur un dossier
 
-Un agent qui répond à vos questions sur les fichiers texte d'un dossier. Il **choisit lui-même** quels fichiers lister, chercher et lire, grâce à l'appel d'outils du modèle, puis répond en citant ses sources. Tout tourne en local avec Ollama.
+Un agent qui répond à vos questions sur les fichiers texte d'un dossier. Il **choisit lui-même** quels fichiers lister, chercher et lire, puis répond en citant ses sources. Il ne sort jamais du dossier choisi et n'écrit rien.
 
-## Installation
+## Installation en un clic (Claude Desktop)
 
-1. Installer [Node.js 18+](https://nodejs.org).
-2. Installer [Ollama](https://ollama.com), puis télécharger un modèle qui gère l'appel d'outils :
-   ```bash
-   ollama pull llama3.2
-   ```
-3. Décompresser cette archive. Aucune dépendance npm à installer.
+1. Sur la fiche de l'agent, cliquer sur **Installer dans Claude Desktop** : un fichier `.mcpb` est téléchargé.
+2. Double-cliquer sur ce fichier. Claude Desktop s'ouvre et affiche la fenêtre d'installation.
+3. Choisir le dossier à interroger, puis valider.
+4. Dans une conversation, poser la question : « Dans mes notes, quand a lieu la prochaine réunion ? ».
 
-## Utilisation
+Rien d'autre à installer : Claude Desktop fournit Node.js.
 
-```bash
-node agent.mjs exemples/notes "Quand a lieu la prochaine réunion ?"
-node agent.mjs exemples/notes "Quel est le budget d'Orion et qui s'occupe du support ?"
-node agent.mjs exemples/notes                 # mode interactif, une question par ligne
-node agent.mjs exemples/notes --verbeux "..."  # affiche les outils appelés
-```
-
-## Comment ça marche
-
-1. Le prompt système (`prompts/system.md`) donne la méthode : chercher, lire, citer.
-2. Le modèle reçoit la question et la définition de trois outils (`tools/fichiers.mjs`).
-3. À chaque étape, s'il demande un outil, l'agent l'exécute et renvoie le résultat au modèle ; sinon la réponse est finale. Huit étapes au maximum par question.
-
-Les outils sont confinés au dossier indiqué et ne modifient jamais rien.
-
-## Utiliser un autre modèle ou un autre serveur
-
-```bash
-AGENT_MODEL=qwen2.5 node agent.mjs ./notes "..."
-AGENT_API_URL=https://api.openai.com/v1 AGENT_MODEL=gpt-4o-mini AGENT_API_KEY=sk-... node agent.mjs ./notes "..."
-```
-
-Le modèle doit gérer l'appel d'outils (function calling).
-
-## Contenu du package
+## Contenu
 
 | Fichier | Rôle |
 |---|---|
-| `agent.json` | fiche d'identité de l'agent (format Agent Market) |
-| `agent.mjs` | la boucle de l'agent : question → outils → réponse |
-| `tools/fichiers.mjs` | les trois outils : lister, lire, chercher |
-| `prompts/system.md` | prompt système |
-| `exemples/notes/` | dossier d'essai |
+| `agent.json` | Fiche de l'agent au format Agent Market v2 (lue par le site) |
+| `server/index.mjs` | Serveur MCP : expose les trois outils et la méthode de travail |
+| `server/mcp.mjs` | Protocole MCP minimal, sans dépendance |
+| `tools/fichiers.mjs` | Les outils `lister_fichiers`, `lire_fichier`, `chercher`, confinés au dossier |
+| `prompts/system.md` | La méthode : chercher, lire, citer, ne rien inventer |
+| `agent.mjs` | Variante en ligne de commande avec un modèle local (Ollama) |
+| `exemples/notes/` | Un petit dossier pour essayer |
 
-## Limites
+## Pour les développeurs
 
-- Fichiers texte uniquement (Markdown, txt, csv, json, yaml, html, code). Pas de PDF.
-- Les fichiers de plus de 12 000 caractères sont tronqués à la lecture.
-- Un petit modèle peut se tromper d'outil ; l'option `--verbeux` montre ce qu'il fait.
+```bash
+# Serveur MCP (entrée et sortie standard)
+AGENT_DOSSIER=./exemples/notes node server/index.mjs
+
+# Essai interactif avec l'inspecteur MCP
+AGENT_DOSSIER=./exemples/notes npx @modelcontextprotocol/inspector node server/index.mjs
+
+# Ligne de commande avec Ollama (ollama pull llama3.2)
+node agent.mjs exemples/notes "Quel est le budget d'Orion et qui s'occupe du support ?"
+node agent.mjs exemples/notes --verbeux "..."   # affiche les outils appelés
+```
+
+Variables de la ligne de commande : `AGENT_API_URL` (défaut `http://localhost:11434/v1`), `AGENT_MODEL` (défaut `llama3.2`), `AGENT_API_KEY`.

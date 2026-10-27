@@ -98,14 +98,15 @@ async function seedExamples() {
       include: { files: true },
     });
 
-    if (manifest.kind === "download" && agent.files.length === 0) {
+    // Une nouvelle version de l'exemple (champ version de agent.json) ajoute une archive ; les anciennes restent dans l'historique.
+    if (manifest.kind === "download" && !agent.files.some((f) => f.version === manifest.version)) {
       const files = await walk(dir, dirName);
       const entries = Object.keys(files);
       const stored = await saveFile(buildZip(files));
       await db.agentFile.create({
         data: {
           agentId: agent.id,
-          version: manifest.version ?? "1.0.0",
+          version: manifest.version,
           extension: ".zip",
           storageKey: stored.key,
           sizeBytes: stored.size,

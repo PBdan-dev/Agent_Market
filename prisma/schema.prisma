@@ -51,7 +51,11 @@ model Agent {
   updatedAt     DateTime    @updatedAt
   downloadCount Int         @default(0)
 
-  // Location : informations déclaratives. Le paiement et l'exécution viendront plus tard.
+  // Manifeste complet au format agent-market/v2 (JSON), lisible par une machine :
+  // sert à l'installation en un clic, au point d'accès MCP et au contrat de location.
+  manifest      String      @default("")
+
+  // Location. Le paiement viendra plus tard ; les tâches sont simulées sans débit.
   endpointUrl   String?
   priceCents    Int?
   currency      String      @default("EUR")
@@ -59,8 +63,28 @@ model Agent {
 
   files         AgentFile[]
   tags          AgentTag[]
+  tasks         Task[]
 
   @@index([kind, status, createdAt])
+}
+
+// Tâche confiée à un agent à louer par l'orchestrateur d'un client (via le point d'accès MCP).
+// L'identifiant est un jeton aléatoire : le connaître suffit pour suivre la tâche.
+model Task {
+  id          String    @id
+  agentId     String
+  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  status      String // "QUEUED" | "RUNNING" | "DONE" | "FAILED"
+  input       String // JSON des entrées, validées contre le contrat de l'agent
+  result      String    @default("") // JSON du résultat
+  error       String?
+  priceCents  Int?
+  currency    String    @default("EUR")
+  createdAt   DateTime  @default(now())
+  readyAt     DateTime // fin prévue du traitement
+  completedAt DateTime?
+
+  @@index([agentId, createdAt])
 }
 
 // Fichier archive d'un agent téléchargeable. Une ligne par version publiée.

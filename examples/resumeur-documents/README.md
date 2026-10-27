@@ -1,47 +1,40 @@
 # Résumeur de documents
 
-Résume un fichier texte ou Markdown avec un modèle de langage **local** (Ollama). Rien ne quitte votre machine.
+Résume un fichier texte ou Markdown de votre ordinateur. Par défaut, c'est le modèle de votre application (Claude dans Claude Desktop) qui écrit le résumé en suivant la méthode de l'agent. Avec un modèle local réglé (Ollama, LM Studio), l'agent résume lui-même et rien ne quitte votre machine.
 
-## Installation
+## Installation en un clic (Claude Desktop)
 
-1. Installer [Python 3.10+](https://www.python.org/downloads/).
-2. Installer [Ollama](https://ollama.com), puis télécharger le modèle :
-   ```bash
-   ollama pull llama3.2
-   ```
-3. Décompresser cette archive. Aucune bibliothèque Python à installer.
+1. Sur la fiche de l'agent, cliquer sur **Installer dans Claude Desktop** : un fichier `.mcpb` est téléchargé.
+2. Double-cliquer sur ce fichier. Claude Desktop s'ouvre et affiche la fenêtre d'installation avec les réglages (langue, longueur, modèle local facultatif).
+3. Valider, puis demander dans une conversation : « Résume C:\Users\moi\Documents\rapport.md en version courte ».
 
-## Utilisation
+Rien d'autre à installer : Claude Desktop fournit Node.js.
 
-```bash
-python agent.py exemples/article.md                 # résumé moyen, en français
-python agent.py rapport.txt --longueur court        # 3 phrases
-python agent.py rapport.txt --longueur long --langue anglais --sortie resume.md
-```
+## Réglages
 
-Le résumé s'affiche dans le terminal et est enregistré dans `<fichier>.resume.md`.
+| Réglage | Rôle | Défaut |
+|---|---|---|
+| Langue des résumés | langue de sortie | français |
+| Longueur par défaut | court, moyen ou long | moyen |
+| Serveur de modèle | adresse compatible OpenAI pour résumer en local (ex. `http://localhost:11434/v1`) | vide : modèle de l'application |
+| Nom du modèle local | modèle à utiliser sur ce serveur | llama3.2 |
+| Clé d'API | si le serveur en demande une | vide |
 
-## Utiliser un autre modèle ou un autre serveur
-
-L'agent parle à tout serveur compatible avec l'API OpenAI :
-
-```bash
-AGENT_API_URL=http://localhost:1234/v1 AGENT_MODEL=mistral python agent.py doc.md   # LM Studio
-AGENT_API_URL=https://api.openai.com/v1 AGENT_MODEL=gpt-4o-mini AGENT_API_KEY=sk-... python agent.py doc.md
-```
-
-## Contenu du package
+## Contenu
 
 | Fichier | Rôle |
 |---|---|
-| `agent.json` | fiche d'identité de l'agent (format Agent Market) |
-| `agent.py` | le programme : lecture, découpage, appels au modèle, écriture du résumé |
-| `prompts/system.md` | prompt système (règles de synthèse) |
-| `prompts/resume.md` | prompt de tâche : résumer un texte |
-| `prompts/fusion.md` | prompt de tâche : fusionner les résumés partiels d'un document long |
-| `exemples/article.md` | document d'essai |
+| `agent.json` | Fiche de l'agent au format Agent Market v2 (lue par le site) |
+| `server/index.mjs` | Serveur MCP : l'outil `resumer_document` |
+| `server/mcp.mjs` | Protocole MCP minimal, sans dépendance |
+| `prompts/system.md` | Règles : fidélité, chiffres et noms propres conservés, rien d'inventé |
+| `prompts/resume.md`, `prompts/fusion.md` | Consigne de résumé et de fusion des morceaux d'un long document |
+| `exemples/article.md` | Un texte pour essayer |
 
-## Limites
+## Pour les développeurs
 
-- Lit uniquement du texte brut et du Markdown (pas de PDF ni de Word).
-- La qualité dépend du modèle : llama3.2 (3 Mds de paramètres) est rapide mais peut simplifier des passages techniques. Un modèle plus grand améliore le résultat.
+```bash
+node server/index.mjs                                   # serveur MCP (entrée et sortie standard)
+npx @modelcontextprotocol/inspector node server/index.mjs   # essai interactif
+AGENT_SERVEUR_MODELE=http://localhost:11434/v1 AGENT_MODELE=llama3.2 node server/index.mjs
+```

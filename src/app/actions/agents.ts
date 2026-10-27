@@ -2,13 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { detectArchiveExtension, findManifest, listArchiveEntries } from "@/lib/archive";
+import { ZodError } from "zod";
+import { MAX_LISTED_ENTRIES, detectArchiveExtension, findManifest, listArchiveEntries, stripCommonRootNames } from "@/lib/archive";
 import { maxUploadBytes, type TagGroup } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { slugify } from "@/lib/slug";
 import { deleteFile, saveFile } from "@/lib/storage";
-import { agentSchema, parseTagList, versionSchema } from "@/lib/validation";
+import { manifestToAgentFields, type AgentManifest } from "@/lib/manifest";
+import { agentSchema, formToManifest, parseTagList, versionSchema } from "@/lib/validation";
 
 export type FormState =
   | { error: string; values?: Record<string, string | string[]> }
@@ -21,7 +23,7 @@ function formValues(formData: FormData): Record<string, string | string[]> {
   for (const key of new Set(formData.keys())) {
     if (key.startsWith("$") || key === "archive") continue;
     const all = formData.getAll(key).map(String);
-    values[key] = key === "tagIds" ? all : all[0];
+    values[key] = key === "tagIds" || key === "os" ? all : all[0];
   }
   return values;
 }
@@ -37,7 +39,7 @@ async function readArchive(formData: FormData): Promise<Archive | string> {
   if (!ext) return "Format refusé : seules les archives .zip, .tar.gz et .tgz valides sont acceptées.";
   let entries: string[];
   try {
-    entries = listArchiveEntries(data, ext);
+    entries = listArchiveEntries(data, ext, Infinity);
   } catch {
     return "Archive illisible : vérifie qu'elle s'ouvre correctement sur ton ordinateur.";
   }
@@ -78,7 +80,7 @@ function fileRecord(version: string, archive: Archive, stored: { key: string; si
     storageKey: stored.key,
     sizeBytes: stored.size,
     sha256: stored.sha256,
-    entries: archive.entries.join("\n"),
+    entries: archive.entries.slice(0, MAX_LISTED_ENTRIES).join("\n"),
     hasManifest: archive.hasManifest,
   };
 }
@@ -91,6 +93,7 @@ export async function createAgent(_: FormState, formData: FormData): Promise<For
   const parsed = agentSchema.safeParse({
     ...values,
     tagIds: formData.getAll("tagIds").map(String),
+    os: formData.getAll("os").map(String),
     newThemes: parseTagList(String(formData.get("newThemes") ?? "")),
     newTechnologies: parseTagList(String(formData.get("newTechnologies") ?? "")),
     endpointUrl: String(formData.get("endpointUrl") ?? ""),
@@ -114,40 +117,34 @@ export async function createAgent(_: FormState, formData: FormData): Promise<For
     ["THEME", input.newThemes],
     ["TECHNOLOGY", input.newTechnologies],
   ]);
+  const tags = await db.tag.findMany({ where: { id: { in: tagIds } }, orderBy: { name: "asc" } });
+  const names = (group: TagGroup) => tags.filter((t) => t.group === group).map((t) => t.name);
+
+  let manifest: AgentManifest;
+  try {
+    manifest = formToManifest(input, { category: names("CATEGORY"), theme: names("THEME"), technology: names("TECHNOLOGY") });
+  } catch (err) {
+    if (err instanceof ZodError) return { error: `Fiche incomplète : ${err.issues[0].message} (${err.issues[0].path.join(".")})`, values };
+    throw err;
+  }
+
+  // L'installation en un clic lance le point d'entrée déclaré : il doit exister dans l'archive.
+  if (archive && manifest.runtime) {
+    const entry = manifest.runtime.entrypoint.replace(/\\/g, "/").replace(/^\.\//, "");
+    if (!stripCommonRootNames(archive.entries).includes(entry)) {
+      return { error: `Le point d'entrée « ${entry} » est introuvable dans l'archive. Indique son chemin depuis la racine du package (ex. server/index.mjs).`, values };
+    }
+  }
+
   const slug = await uniqueSlug(input.name);
   const stored = archive ? await saveFile(archive.data) : undefined;
 
   try {
     await db.agent.create({
       data: {
+        ...manifestToAgentFields(manifest),
         slug,
-        kind: input.kind,
-        name: input.name,
-        summary: input.summary,
-        objective: input.objective,
-        description: input.description ?? "",
-        capabilities: input.capabilities,
-        tools: input.tools ?? "",
-        llmModel: input.llmModel ?? "",
-        prompts: input.prompts ?? "",
-        runtime: input.runtime ?? "",
-        protocol: input.protocol,
-        standalone: input.standalone === "yes",
-        dependencies: input.standalone === "yes" ? "" : (input.dependencies ?? ""),
-        requirements: input.requirements ?? "",
-        usage: input.usage,
-        inputs: input.inputs ?? "",
-        outputs: input.outputs ?? "",
-        license: input.license,
-        sourceUrl: input.sourceUrl,
         authorId: user.id,
-        ...(input.kind === "RENTAL"
-          ? {
-              endpointUrl: input.endpointUrl,
-              priceCents: input.priceEuros === undefined ? undefined : Math.round(input.priceEuros * 100),
-              priceUnit: input.priceUnit,
-            }
-          : {}),
         tags: { create: tagIds.map((tagId) => ({ tagId })) },
         files:
           input.kind === "DOWNLOAD" && stored && archive

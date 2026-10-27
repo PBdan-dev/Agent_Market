@@ -1,14 +1,18 @@
 openapi: 3.1.0
 info:
   title: Mesh 3D sur Blender
-  version: 1.0.0
-  description: Génération d'un mesh 3D à partir d'une description. Service hébergé par le créateur.
+  version: 2.0.0
+  description: |
+    Contrat HTTP qu'un créateur expose pour louer cet agent via Agent Market.
+    Agent Market reçoit les tâches des orchestrateurs (point d'accès MCP du site),
+    les transmet à ce service, suit leur avancement et rend le résultat au client.
+    Les champs d'entrée sont ceux déclarés dans agent.json (rental.input).
 servers:
   - url: https://mesh.exemple.agent-market/v1
 paths:
   /jobs:
     post:
-      summary: Créer un job de génération
+      summary: Créer une tâche de génération
       security: [{ bearer: [] }]
       requestBody:
         required: true
@@ -16,14 +20,15 @@ paths:
           application/json:
             schema:
               type: object
-              required: [prompt]
+              required: [description]
               properties:
-                prompt: { type: string, description: Description de l'objet à générer }
-                format: { type: string, enum: [glb, fbx, obj], default: glb }
-                max_triangles: { type: integer, minimum: 500, maximum: 50000, default: 50000 }
+                description: { type: string, maxLength: 500, description: L'objet à modéliser }
+                triangles_max: { type: integer, minimum: 500, maximum: 50000, default: 5000 }
+                style: { type: string, enum: [low-poly, lisse], default: low-poly }
+                format: { type: string, enum: [obj], default: obj }
       responses:
         "202":
-          description: Job accepté
+          description: Tâche acceptée
           content:
             application/json:
               schema:
@@ -35,13 +40,13 @@ paths:
         "422": { description: Demande hors périmètre (non facturée) }
   /jobs/{job_id}:
     get:
-      summary: État et résultat d'un job
+      summary: État et résultat d'une tâche
       security: [{ bearer: [] }]
       parameters:
         - { name: job_id, in: path, required: true, schema: { type: string } }
       responses:
         "200":
-          description: État du job
+          description: État de la tâche
           content:
             application/json:
               schema:
@@ -54,9 +59,8 @@ paths:
                     type: object
                     properties:
                       mesh_url: { type: string, format: uri }
-                      previews: { type: array, items: { type: string, format: uri } }
                       triangles: { type: integer }
-                      manifold: { type: boolean }
+                      shape: { type: string }
 components:
   securitySchemes:
     bearer: { type: http, scheme: bearer }

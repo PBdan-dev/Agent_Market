@@ -1,62 +1,61 @@
 {
-  "schema": "agent-market/v1",
+  "schema": "agent-market/v2",
   "name": "Résumeur de documents",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "kind": "download",
-  "summary": "Résume un fichier texte ou Markdown avec un modèle local, sans envoyer vos données à un tiers.",
-  "objective": "Produire un résumé fidèle d'un document texte, court, moyen ou long, en gardant les chiffres et les noms propres. Les documents longs sont découpés puis les résumés partiels sont fusionnés.",
+  "summary": "Résume un fichier texte ou Markdown de votre ordinateur, avec le modèle de votre application ou un modèle local.",
+  "objective": "Produire un résumé fidèle d'un document texte, court, moyen ou long, en gardant les chiffres et les noms propres. Avec un modèle local réglé, les documents longs sont découpés puis les résumés partiels fusionnés, sans que le texte quitte la machine.",
   "capabilities": [
-    "Résume un fichier .txt ou .md de n'importe quelle taille (découpage automatique au-delà de 6 000 caractères)",
+    "Résume un fichier .txt, .md, .csv, .html ou .json de l'ordinateur, jusqu'à 2 Mo de texte",
     "Trois longueurs de résumé : court (3 phrases), moyen (un paragraphe), long (plusieurs paragraphes titrés)",
-    "Répond dans la langue demandée (français par défaut)",
+    "Répond dans la langue choisie (français par défaut)",
     "Conserve les chiffres, dates et noms propres du texte d'origine",
     "N'invente rien : signale ce que le texte ne dit pas",
-    "Enregistre le résumé à côté du document d'origine (fichier .resume.md)"
+    "Peut résumer 100 % en local avec Ollama ou LM Studio, réglage facultatif"
   ],
   "tags": {
     "category": ["Productivité"],
     "theme": ["Rédaction", "Documents"],
-    "technology": ["Python", "Ollama"]
+    "technology": ["MCP", "Node.js", "Ollama"]
   },
+  "protocol": "MCP",
   "model": {
-    "name": "llama3.2 (3 milliards de paramètres)",
-    "provider": "Ollama, en local",
-    "alternatives": "tout serveur compatible OpenAI (LM Studio, vLLM, OpenAI…) via les variables AGENT_API_URL, AGENT_MODEL et AGENT_API_KEY",
-    "note": "Le modèle n'est pas inclus dans l'archive : Ollama le télécharge avec « ollama pull llama3.2 » (environ 2 Go)."
+    "uses": "host",
+    "recommended": ["llama3.2", "qwen2.5:7b", "mistral-nemo"],
+    "note": "Par défaut, le modèle de l'application (Claude dans Claude Desktop) écrit le résumé en suivant la méthode de l'agent. Si le réglage « Serveur de modèle » est rempli, l'agent résume lui-même avec ce modèle (les modèles recommandés sont pour ce cas)."
   },
   "prompts": {
     "system": "prompts/system.md",
     "tasks": ["prompts/resume.md", "prompts/fusion.md"],
-    "note": "Les prompts sont des fichiers Markdown modifiables, avec des variables {{texte}}, {{longueur}} et {{langue}}."
+    "note": "Fichiers Markdown modifiables, avec les variables {{texte}}, {{longueur}} et {{langue}}."
   },
   "tools": [
-    { "name": "lecture de fichier", "description": "lit le document en UTF-8 (.txt, .md)" },
-    { "name": "découpage", "description": "coupe les textes longs par paragraphes, 6 000 caractères par morceau" },
-    { "name": "écriture du résultat", "description": "enregistre le résumé dans <fichier>.resume.md" }
+    { "name": "resumer_document", "description": "Lit un fichier texte et renvoie son résumé, ou la méthode et le texte pour que l'application le résume" }
   ],
   "runtime": {
-    "language": "Python 3.10 ou plus, bibliothèque standard uniquement",
-    "entrypoint": "agent.py",
-    "protocol": "CLI"
+    "language": "node",
+    "version": ">=18",
+    "entrypoint": "server/index.mjs"
   },
-  "dependencies": {
-    "standalone": false,
-    "requires": [
-      "Python 3.10 ou plus",
-      "Ollama 0.3 ou plus, lancé sur la machine (ollama serve)",
-      "Le modèle llama3.2 téléchargé (ollama pull llama3.2, environ 2 Go)"
-    ]
-  },
+  "parameters": [
+    { "key": "langue", "type": "string", "label": "Langue des résumés", "description": "Par exemple français, anglais, espagnol.", "default": "français" },
+    { "key": "longueur", "type": "string", "label": "Longueur par défaut", "description": "court, moyen ou long.", "default": "moyen" },
+    { "key": "serveur_modele", "type": "string", "label": "Serveur de modèle (facultatif)", "description": "Pour résumer en local : adresse d'un serveur compatible OpenAI, par exemple http://localhost:11434/v1 pour Ollama. Laisser vide pour utiliser le modèle de l'application.", "default": "" },
+    { "key": "modele", "type": "string", "label": "Nom du modèle local", "description": "Utilisé seulement si un serveur de modèle est réglé.", "default": "llama3.2" },
+    { "key": "cle_api", "type": "string", "label": "Clé d'API du serveur (facultatif)", "description": "Seulement si le serveur de modèle en demande une.", "secret": true, "default": "" }
+  ],
+  "permissions": { "files": "read", "network": "local" },
+  "dependencies": { "standalone": true, "requires": [] },
   "requirements": {
-    "cpu": "4 cœurs suffisent",
-    "ram": "8 Go recommandés pour llama3.2",
-    "gpu": "optionnel, accélère la génération",
-    "note": "Un document de 20 pages se résume en 1 à 3 minutes sur un portable récent sans GPU."
+    "ramGb": 0.1,
+    "vramGb": 0,
+    "os": ["win32", "darwin", "linux"],
+    "note": "Avec un modèle local : 8 Go de RAM recommandés pour llama3.2 ; un document de 20 pages se résume en 1 à 3 minutes sans GPU."
   },
   "io": {
-    "inputs": "Un chemin vers un fichier .txt ou .md ; options --longueur (court|moyen|long) et --langue",
-    "outputs": "Le résumé affiché dans le terminal et enregistré dans <fichier>.resume.md"
+    "inputs": "Le chemin d'un fichier texte, et en option la longueur et la langue",
+    "outputs": "Le résumé, dans la conversation"
   },
-  "usage": "python agent.py mon-document.md --longueur court\npython agent.py rapport.txt --langue anglais --sortie resume.md",
+  "usage": "Serveur MCP sur l'entrée standard :\nnode server/index.mjs\n\nEssai avec l'inspecteur MCP :\nnpx @modelcontextprotocol/inspector node server/index.mjs\n\nRésumé 100 % local avec Ollama :\nAGENT_SERVEUR_MODELE=http://localhost:11434/v1 AGENT_MODELE=llama3.2 node server/index.mjs",
   "license": "MIT"
 }

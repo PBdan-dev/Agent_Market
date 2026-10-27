@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, rm, writeFile, stat } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 
@@ -28,6 +28,10 @@ export async function openFile(key: string): Promise<{ stream: ReadableStream; s
   const { size } = await stat(filePath);
   const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream;
   return { stream, size };
+}
+
+export async function readStoredFile(key: string): Promise<Uint8Array> {
+  return new Uint8Array(await readFile(resolveKey(key)));
 }
 
 export async function deleteFile(key: string): Promise<void> {

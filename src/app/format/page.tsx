@@ -1,31 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import manifest from "../../../examples/resumeur-documents/agent.json";
+import manifest from "../../../examples/questions-dossier/agent.json";
 
 export const metadata: Metadata = {
   title: "Format d'un package d'agent",
-  description: "Ce que doit contenir un agent publié sur Agent Market : modèle, outils, prompts, dépendances, contrat d'appel.",
+  description: "Ce que doit contenir un agent publié sur Agent Market : modèle, outils, prompts, réglages, permissions, contrat d'appel. Format lisible par une machine, installable en un clic.",
 };
 
 const TREE = `mon-agent/
-├── agent.json          fiche d'identité : modèle, outils, prompts, dépendances, appel
-├── README.md           installation et utilisation, lisible par un humain
-├── agent.py            (ou agent.mjs, main.ts…) le point d'entrée
+├── agent.json          la fiche, lisible par un humain et par une machine (format agent-market/v2)
+├── README.md           installation et utilisation
+├── server/
+│   └── index.mjs       le point d'entrée : un serveur MCP (Node.js, Python ou exécutable)
 ├── prompts/
 │   ├── system.md       prompt système
 │   └── resume.md       prompts de tâche, un fichier par tâche
-├── tools/              code des outils que l'agent peut appeler
-├── exemples/           entrées d'essai et résultats attendus
+├── tools/              code des outils que l'agent expose
+├── exemples/           entrées d'essai
 └── LICENSE`;
 
 const RULES: [string, string][] = [
-  ["Autonome ou déclaré", "Soit l'agent fonctionne seul après décompression, soit chaque dépendance est listée dans agent.json (ex. « Ollama ≥ 0.3 », « Python 3.10 », « clé d'API OpenAI »)."],
-  ["Le modèle est déclaré, pas inclus", "Les poids d'un modèle pèsent des gigaoctets. Le package indique quel modèle utiliser, où l'obtenir et par quelle variable le remplacer."],
-  ["Les prompts sont des fichiers", "Prompt système et prompts de tâche sont des fichiers texte modifiables, pas des chaînes enfouies dans le code."],
-  ["Chaque outil est nommé", "Un outil = un nom, une description, ce qu'il lit ou modifie. L'utilisateur sait ce que l'agent peut toucher avant de le lancer."],
-  ["Un contrat d'appel", "Une commande, un serveur MCP, une API HTTP ou une bibliothèque : le README montre l'appel exact, les entrées acceptées et les sorties produites."],
-  ["Aucun secret dans l'archive", "Pas de clé d'API, de mot de passe ni de données personnelles. Les secrets passent par des variables d'environnement."],
-  ["Des promesses vérifiables", "Les compétences annoncées sont des engagements concrets (« mesh fermé, moins de 50 000 triangles ») plutôt que des slogans."],
+  ["Un serveur MCP pour l'installation en un clic", "Un agent téléchargeable qui expose un serveur MCP (protocol « MCP », runtime avec langage et point d'entrée) s'installe en un clic dans Claude Desktop. Node.js est conseillé : Claude Desktop le fournit, l'utilisateur n'a rien à installer."],
+  ["Les réglages sont déclarés", "Chaque réglage (dossier, langue, clé d'API…) est décrit dans « parameters » : type, libellé, valeur par défaut, obligatoire, secret. L'application affiche le formulaire et transmet chaque valeur au programme dans la variable AGENT_<CLÉ>."],
+  ["Le modèle est déclaré, pas inclus", "« model.uses » dit si l'agent utilise le modèle de l'application (host), son propre modèle (own) ou aucun (none). Les poids d'un modèle ne sont jamais dans l'archive."],
+  ["Les accès sont annoncés", "« permissions » indique l'accès aux fichiers (none, read, write), au réseau (none, local, internet) et aux comptes externes. Ils s'affichent sur la fiche avant l'installation."],
+  ["Autonome ou dépendances listées", "Soit l'agent fonctionne seul, soit chaque dépendance est listée dans « dependencies.requires »."],
+  ["Un contrat pour la location", "Un agent à louer décrit dans « rental » son prix, les entrées attendues (schéma JSON), le résultat livré et le délai maximal. Les orchestrateurs lisent ce contrat via le point d'accès MCP du site."],
+  ["Aucun secret dans l'archive", "Pas de clé d'API, de mot de passe ni de données personnelles : les secrets passent par un réglage marqué « secret »."],
 ];
 
 export default function FormatPage() {
@@ -44,12 +45,12 @@ export default function FormatPage() {
         <h2 className="section-title">Les six composants d&apos;un agent</h2>
         <ol className="grid gap-3 text-sm text-muted sm:grid-cols-2">
           {[
-            ["Modèle", "Le ou les modèles de langage utilisés, et comment les obtenir."],
+            ["Modèle", "Celui de l'application qui l'utilise, le sien, ou aucun ; et lesquels sont recommandés."],
             ["Prompts", "Le prompt système (rôle, règles) et les prompts techniques de chaque tâche."],
             ["Outils", "Les fonctions que le modèle peut appeler : lire un fichier, interroger une API…"],
-            ["Exécution", "Le langage, le point d'entrée et le mode d'appel (commande, MCP, HTTP…)."],
-            ["Dépendances et puissance", "Ce qu'il faut installer et la machine nécessaire (RAM, GPU)."],
-            ["Contrat", "Les entrées acceptées, les sorties produites et les promesses tenues."],
+            ["Exécution", "Le mode d'appel (MCP, HTTP…), le langage et le point d'entrée, les réglages demandés."],
+            ["Accès et puissance", "Fichiers, réseau et comptes utilisés ; la machine nécessaire (RAM, GPU, systèmes)."],
+            ["Contrat", "Les entrées acceptées, le résultat livré, le prix et le délai pour la location."],
           ].map(([t, d], i) => (
             <li key={t} className="flex gap-3 rounded-xl border border-line bg-black/20 p-3">
               <span className="font-mono text-xs text-mint">0{i + 1}</span>
@@ -67,6 +68,11 @@ export default function FormatPage() {
         <h2 className="section-title">Structure de l&apos;archive (.zip, .tar.gz ou .tgz)</h2>
         <pre className="code">{TREE}</pre>
         <p className="mt-3 text-sm text-muted">
+          <strong className="text-text">Installation en un clic.</strong> À partir de cette archive et de agent.json, le site fabrique le fichier
+          d&apos;installation pour Claude Desktop (format MCPB, avec son manifest.json). Le créateur n&apos;a rien de plus à écrire ;
+          l&apos;utilisateur double-clique sur le fichier, choisit ses réglages et c&apos;est prêt.
+        </p>
+        <p className="mt-3 text-sm text-muted">
           Pour un <strong className="text-text">agent à louer</strong>, il n&apos;y a pas d&apos;archive à télécharger : le service tourne chez le créateur. La fiche décrit
           le contrat d&apos;appel (adresse, entrées, sorties, délais, prix) et les promesses tenues.
         </p>
@@ -76,10 +82,11 @@ export default function FormatPage() {
         <h2 className="section-title">Le fichier agent.json</h2>
         <p className="mb-3 text-sm text-muted">
           Exemple réel, tiré de l&apos;agent{" "}
-          <Link href="/agents/resumeur-de-documents" className="text-mint hover:underline">
-            Résumeur de documents
+          <Link href="/agents/questions-sur-un-dossier" className="text-mint hover:underline">
+            Questions sur un dossier
           </Link>
-          . Les champs <span className="font-mono text-xs">schema, name, kind, summary, objective, capabilities</span> sont obligatoires ; les autres remplissent la fiche.
+          . Champs obligatoires : <span className="font-mono text-xs">schema, name, version, kind, summary, objective, capabilities, protocol, model, dependencies</span>
+          ; un serveur MCP téléchargeable ajoute <span className="font-mono text-xs">runtime</span>, un agent à louer <span className="font-mono text-xs">rental</span>.
         </p>
         <pre className="code max-h-[520px] overflow-y-auto">{JSON.stringify(manifest, null, 2)}</pre>
       </section>
@@ -101,8 +108,9 @@ export default function FormatPage() {
       <section className="card mt-5 animate-fade-up" style={{ animationDelay: "300ms" }}>
         <h2 className="section-title">Publier</h2>
         <p className="text-sm text-muted">
-          Le formulaire de publication reprend ces champs un par un. Si votre archive contient un <span className="font-mono text-xs">agent.json</span>, la fiche
-          l&apos;indique. Les agents d&apos;exemple du catalogue sont construits exactement sur ce format : téléchargez-en un pour partir d&apos;une base qui fonctionne.
+          Le formulaire de publication reprend ces champs un par un. Si votre archive contient un <span className="font-mono text-xs">agent.json</span>, le
+          formulaire se remplit tout seul : il reste à vérifier et publier. Les agents d&apos;exemple du catalogue suivent exactement ce format : téléchargez
+          l&apos;archive de l&apos;un d&apos;eux pour partir d&apos;une base qui fonctionne.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/publier" className="btn-primary">

@@ -1,13 +1,26 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteAgent } from "@/app/actions/agents";
 import { AgentVisual } from "@/components/AgentVisual";
+import { CopyField } from "@/components/CopyField";
 import { formatBytes, formatDate, formatPrice } from "@/components/format";
 import { TagBadge, sortTags } from "@/components/TagBadge";
 import { KIND_LABELS, KIND_PATHS, PROTOCOL_LABELS, splitLines, type AgentKind, type Protocol } from "@/lib/constants";
+import {
+  DEFAULT_INPUT_SCHEMA,
+  FILE_ACCESS_LABELS,
+  NETWORK_ACCESS_LABELS,
+  OUTPUT_TYPE_LABELS,
+  PARAMETER_TYPE_LABELS,
+  isOneClickInstallable,
+  parseManifest,
+} from "@/lib/manifest";
 import { getAgentBySlug } from "@/lib/queries";
+import { isRentableNow } from "@/lib/rental/tasks";
 import { currentUser } from "@/lib/session";
+import { siteOrigin } from "@/lib/site-url";
 import { AddVersionForm } from "./AddVersionForm";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -83,6 +96,24 @@ const Icon = {
       <path d="M4 17l6-5-6-5M12 19h8" />
     </svg>
   ),
+  plug: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 01-12 0zM12 18v4" />
+    </svg>
+  ),
+  sliders: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+      <circle cx="16" cy="6" r="2" />
+      <circle cx="10" cy="12" r="2" />
+      <circle cx="18" cy="18" r="2" />
+    </svg>
+  ),
+  shield: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+      <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
+    </svg>
+  ),
   box: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
       <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z M12 12l8-4.5 M12 12L4 7.5 M12 12v9" />
@@ -102,6 +133,13 @@ export default async function AgentPage({ params }: Props) {
   const latest = agent.files[0];
   const protocol = PROTOCOL_LABELS[agent.protocol as Protocol];
   const packageEntries = latest ? splitLines(latest.entries) : [];
+  const manifest = parseManifest(agent.manifest);
+  const installable = isDownload && Boolean(latest) && isOneClickInstallable(manifest);
+  const rentable = isRentableNow(agent);
+  const origin = siteOrigin(await headers());
+  const mcpUrl = `${origin}/api/mcp`;
+  const inputSchema = manifest?.rental?.input ?? DEFAULT_INPUT_SCHEMA;
+  const settings = manifest?.parameters ?? [];
 
   return (
     <div>
@@ -143,8 +181,13 @@ export default async function AgentPage({ params }: Props) {
             {isDownload ? (
               latest ? (
                 <>
-                  <a href={`/api/agents/${agent.slug}/download`} className="btn-primary" download>
-                    ↓ Télécharger la v{latest.version}
+                  {installable ? (
+                    <a href={`/api/agents/${agent.slug}/install`} className="btn-primary" download>
+                      ↓ Installer dans Claude Desktop
+                    </a>
+                  ) : null}
+                  <a href={`/api/agents/${agent.slug}/download`} className={installable ? "btn-secondary" : "btn-primary"} download>
+                    ↓ {installable ? "Archive" : "Télécharger"} v{latest.version}
                   </a>
                   <span className="text-xs text-muted">
                     {formatBytes(latest.sizeBytes)} · {agent.downloadCount} téléchargement{agent.downloadCount > 1 ? "s" : ""}
@@ -156,10 +199,9 @@ export default async function AgentPage({ params }: Props) {
             ) : (
               <>
                 <span className="text-2xl font-bold text-amber">{formatPrice(agent.priceCents, agent.currency, agent.priceUnit)}</span>
-                <button disabled className="btn-primary" title="La location en ligne arrive bientôt">
-                  Louer cet agent
-                </button>
-                <span className="text-xs text-faint">Location en ligne bientôt disponible.</span>
+                <a href="#utiliser" className="btn-primary">
+                  Utiliser depuis mon agent
+                </a>
               </>
             )}
             {agent.sourceUrl && (
@@ -168,11 +210,18 @@ export default async function AgentPage({ params }: Props) {
               </a>
             )}
           </div>
+          {installable && (
+            <p className="mt-3 text-xs text-muted">
+              Double-cliquez sur le fichier téléchargé : Claude Desktop s&apos;ouvre et propose l&apos;installation
+              {settings.length ? ", avec ses réglages" : ""}. Rien d&apos;autre à installer.
+            </p>
+          )}
+          {!isDownload && <p className="mt-3 text-xs text-muted">Paiement simulé pendant les tests : rien n&apos;est débité.</p>}
         </div>
       </header>
 
       {/* Fiche d'identité */}
-      <div className="mt-8 grid gap-5 lg:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2 [&>*]:min-w-0">
         <Section title="Objectif" icon={Icon.target} className="lg:col-span-2">
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted">{agent.objective || agent.description}</p>
           {agent.objective && agent.description && (
@@ -229,21 +278,121 @@ export default async function AgentPage({ params }: Props) {
           <Lines text={agent.requirements} />
         </Section>
 
-        <Section title="Comment l'appeler" icon={Icon.terminal} className="lg:col-span-2">
-          {agent.usage ? <pre className="code whitespace-pre-wrap">{agent.usage}</pre> : <p className="text-sm text-faint">Non précisé.</p>}
-          {(agent.inputs || agent.outputs) && (
-            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+        {!isDownload && (
+          <section id="utiliser" className="card animate-fade-up scroll-mt-24 border-amber/30 lg:col-span-2">
+            <h2 className="section-title">
+              <span className="text-amber">{Icon.plug}</span>
+              Utiliser depuis mon agent
+            </h2>
+            {rentable ? (
+              <div className="space-y-4 text-sm text-muted">
+                <p>
+                  Votre orchestrateur (Claude, ou tout agent compatible MCP) loue cet agent tout seul : il lit cette fiche, lance la tâche, suit son
+                  avancement et récupère le résultat. Une seule chose à faire, une fois : lui donner l&apos;adresse d&apos;Agent Market.
+                </p>
+                <CopyField value={mcpUrl} label="Adresse MCP d'Agent Market" />
+                <ol className="list-decimal space-y-1 pl-5">
+                  <li>
+                    Ajoutez cette adresse comme serveur MCP (connecteur) dans votre orchestrateur.{" "}
+                    <Link href="/connecter" className="text-mint hover:underline">
+                      Mode d&apos;emploi pour Claude et les autres
+                    </Link>
+                    .
+                  </li>
+                  <li>
+                    Demandez-lui par exemple : <em className="text-text">« Avec Agent Market, loue l&apos;agent {agent.name} pour… »</em>
+                  </li>
+                </ol>
+              </div>
+            ) : (
+              <p className="text-sm text-muted">Cet agent n&apos;est pas encore branché pour la location en ligne. Sa fiche est visible par les orchestrateurs.</p>
+            )}
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <div>
-                <dt className="mono-label">Entrées</dt>
-                <dd className="mt-1 whitespace-pre-wrap text-muted">{agent.inputs || "Non précisé."}</dd>
+                <p className="mono-label">Ce qu&apos;il faut lui fournir</p>
+                <ul className="mt-2 space-y-1.5 text-sm text-muted">
+                  {Object.entries(inputSchema.properties).map(([key, prop]) => (
+                    <li key={key}>
+                      <span className="font-mono text-xs text-text">{key}</span>
+                      {inputSchema.required?.includes(key) && <span className="text-mint"> *</span>}
+                      {prop.description && <> : {prop.description}</>}
+                      {prop.enum && <span className="text-faint"> ({prop.enum.join(", ")})</span>}
+                      {prop.minimum !== undefined && prop.maximum !== undefined && (
+                        <span className="text-faint">
+                          {" "}
+                          ({prop.minimum} à {prop.maximum})
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
               <div>
-                <dt className="mono-label">Sorties</dt>
-                <dd className="mt-1 whitespace-pre-wrap text-muted">{agent.outputs || "Non précisé."}</dd>
+                <p className="mono-label">Ce qu&apos;il rend</p>
+                <p className="mt-2 text-sm text-muted">
+                  {manifest?.rental?.output ? OUTPUT_TYPE_LABELS[manifest.rental.output.type] : agent.outputs || "Non précisé."}
+                  {manifest?.rental?.output?.formats?.length ? ` (${manifest.rental.output.formats.join(", ")})` : ""}
+                  {manifest?.rental?.maxMinutes ? `, en ${manifest.rental.maxMinutes} minutes au plus.` : ""}
+                </p>
               </div>
-            </dl>
-          )}
-        </Section>
+            </div>
+          </section>
+        )}
+
+        {isDownload && settings.length > 0 && (
+          <Section title="Réglages demandés à l'installation" icon={Icon.sliders}>
+            <ul className="space-y-2 text-sm text-muted">
+              {settings.map((p) => (
+                <li key={p.key}>
+                  <span className="text-text">{p.label}</span>
+                  <span className="text-faint">
+                    {" "}
+                    · {PARAMETER_TYPE_LABELS[p.type]}
+                    {p.required ? " · obligatoire" : ""}
+                    {p.secret ? " · secret" : ""}
+                    {p.default !== undefined && p.default !== "" ? ` · défaut : ${String(p.default)}` : ""}
+                  </span>
+                  {p.description && <span className="block text-xs text-faint">{p.description}</span>}
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {isDownload && manifest?.permissions && (
+          <Section title="Accès demandés" icon={Icon.shield}>
+            <ul className="space-y-1.5 text-sm text-muted">
+              <li>{FILE_ACCESS_LABELS[manifest.permissions.files]}</li>
+              <li>{NETWORK_ACCESS_LABELS[manifest.permissions.network]}</li>
+              {manifest.permissions.accounts?.length ? <li>Comptes externes : {manifest.permissions.accounts.join(", ")}</li> : null}
+            </ul>
+          </Section>
+        )}
+
+        {(agent.usage || agent.inputs || agent.outputs) && (
+          <details className="card animate-fade-up group lg:col-span-2">
+            <summary className="section-title mb-0 cursor-pointer list-none">
+              <span className="text-mint">{Icon.terminal}</span>
+              Pour les développeurs
+              <span className="ml-auto text-xs font-normal text-faint group-open:hidden">Afficher</span>
+            </summary>
+            <div className="mt-4">
+              {agent.usage && <pre className="code whitespace-pre-wrap">{agent.usage}</pre>}
+              {(agent.inputs || agent.outputs) && (
+                <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="mono-label">Entrées</dt>
+                    <dd className="mt-1 whitespace-pre-wrap text-muted">{agent.inputs || "Non précisé."}</dd>
+                  </div>
+                  <div>
+                    <dt className="mono-label">Sorties</dt>
+                    <dd className="mt-1 whitespace-pre-wrap text-muted">{agent.outputs || "Non précisé."}</dd>
+                  </div>
+                </dl>
+              )}
+            </div>
+          </details>
+        )}
 
         {isDownload && latest && (
           <Section title="Contenu du package" icon={Icon.box}>
@@ -261,7 +410,7 @@ export default async function AgentPage({ params }: Props) {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-faint">SHA-256 : <span className="font-mono">{latest.sha256}</span></p>
+            <p className="mt-3 break-all text-xs text-faint">SHA-256 : <span className="font-mono">{latest.sha256}</span></p>
           </Section>
         )}
 

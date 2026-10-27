@@ -1,4 +1,5 @@
 // Outils donnés au modèle : lister, lire et chercher dans les fichiers texte d'un dossier.
+// Partagés par le serveur MCP (server/index.mjs) et la ligne de commande (agent.mjs).
 // Tout accès est confiné au dossier racine ; aucun outil n'écrit sur le disque.
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
@@ -98,12 +99,14 @@ export function creerOutils(racine) {
     },
   };
 
-  async function executer(nom, args) {
+  // Par défaut une erreur est renvoyée en texte au modèle ; le serveur MCP préfère la recevoir en exception.
+  async function executer(nom, args, { leverErreurs = false } = {}) {
     const action = actions[nom];
-    if (!action) return `Outil inconnu : ${nom}`;
     try {
+      if (!action) throw new Error(`Outil inconnu : ${nom}`);
       return await action(args ?? {});
     } catch (erreur) {
+      if (leverErreurs) throw erreur;
       return `Erreur : ${erreur.message}`;
     }
   }

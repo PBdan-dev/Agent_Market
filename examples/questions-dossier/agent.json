@@ -1,61 +1,63 @@
 {
-  "schema": "agent-market/v1",
+  "schema": "agent-market/v2",
   "name": "Questions sur un dossier",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "kind": "download",
   "summary": "Répond à vos questions sur les fichiers d'un dossier en allant lire lui-même les documents utiles.",
   "objective": "Trouver la réponse à une question dans les fichiers texte d'un dossier (notes, comptes rendus, documentation) en utilisant des outils de liste, de lecture et de recherche, puis répondre en citant les fichiers consultés.",
   "capabilities": [
-    "Liste, cherche et lit seul les fichiers texte d'un dossier (.md, .txt, .csv, .json, .yaml, .html, code source)",
-    "Choisit lui-même les fichiers pertinents grâce à l'appel d'outils (function calling)",
+    "Liste, cherche et lit les fichiers texte d'un dossier (.md, .txt, .csv, .json, .yaml, .html, code source)",
+    "Choisit lui-même les fichiers pertinents au lieu de tout lire",
     "Cite les fichiers utilisés dans sa réponse",
     "Dit clairement quand l'information n'est pas dans le dossier, plutôt que d'inventer",
-    "Mode interactif : plusieurs questions à la suite sur le même dossier",
-    "Ne sort jamais du dossier indiqué et n'écrit aucun fichier"
+    "Ne sort jamais du dossier choisi à l'installation et n'écrit aucun fichier"
   ],
   "tags": {
     "category": ["Recherche"],
     "theme": ["Documents", "Automatisation"],
-    "technology": ["Node.js", "Ollama"]
+    "technology": ["MCP", "Node.js"]
   },
+  "protocol": "MCP",
   "model": {
-    "name": "llama3.2 (3 milliards de paramètres)",
-    "provider": "Ollama, en local",
-    "alternatives": "tout serveur compatible OpenAI qui gère l'appel d'outils (LM Studio, vLLM, OpenAI…) via AGENT_API_URL, AGENT_MODEL et AGENT_API_KEY",
-    "note": "Le modèle n'est pas inclus dans l'archive. Il doit gérer l'appel d'outils (c'est le cas de llama3.2, qwen2.5, mistral-nemo)."
+    "uses": "host",
+    "needs": { "toolCalling": true },
+    "note": "Dans Claude Desktop, c'est Claude qui raisonne et appelle les outils de l'agent. En ligne de commande (agent.mjs), l'agent peut aussi tourner avec un modèle local Ollama, par exemple llama3.2."
   },
   "prompts": {
     "system": "prompts/system.md",
-    "note": "Le prompt système décrit la méthode (chercher, lire, citer) et interdit d'inventer."
+    "note": "La méthode (chercher, lire, citer, ne rien inventer) est transmise au modèle comme consignes du serveur MCP et comme prompt « questions_dossier »."
   },
   "tools": [
-    { "name": "lister_fichiers", "description": "liste les fichiers texte du dossier ou d'un sous-dossier, avec leur taille" },
-    { "name": "lire_fichier", "description": "renvoie le contenu d'un fichier, tronqué à 12 000 caractères" },
-    { "name": "chercher", "description": "cherche un mot ou une expression dans tous les fichiers et renvoie les lignes trouvées" }
+    { "name": "lister_fichiers", "description": "Liste les fichiers texte du dossier ou d'un sous-dossier, avec leur taille" },
+    { "name": "lire_fichier", "description": "Renvoie le contenu d'un fichier, tronqué à 12 000 caractères" },
+    { "name": "chercher", "description": "Cherche un mot ou une expression dans tous les fichiers et renvoie les lignes trouvées" }
   ],
   "runtime": {
-    "language": "Node.js 18 ou plus, sans dépendance npm",
-    "entrypoint": "agent.mjs",
-    "protocol": "CLI"
+    "language": "node",
+    "version": ">=18",
+    "entrypoint": "server/index.mjs"
   },
-  "dependencies": {
-    "standalone": false,
-    "requires": [
-      "Node.js 18 ou plus",
-      "Ollama 0.3 ou plus, lancé sur la machine (ollama serve)",
-      "Le modèle llama3.2 téléchargé (ollama pull llama3.2, environ 2 Go)"
-    ]
-  },
+  "parameters": [
+    {
+      "key": "dossier",
+      "type": "directory",
+      "label": "Dossier à interroger",
+      "description": "L'agent ne pourra lire que les fichiers de ce dossier et de ses sous-dossiers.",
+      "required": true
+    }
+  ],
+  "permissions": { "files": "read", "network": "none" },
+  "dependencies": { "standalone": true, "requires": [] },
   "requirements": {
-    "cpu": "4 cœurs suffisent",
-    "ram": "8 Go recommandés pour llama3.2",
-    "gpu": "optionnel",
-    "note": "Une question demande en général 2 à 4 appels au modèle, soit 10 à 40 secondes sans GPU."
+    "ramGb": 0.1,
+    "vramGb": 0,
+    "os": ["win32", "darwin", "linux"],
+    "note": "Aucune puissance particulière : le raisonnement est fait par le modèle de l'application."
   },
   "io": {
-    "inputs": "Un chemin de dossier et une question en langage naturel (ou aucune question pour le mode interactif)",
-    "outputs": "Une réponse en texte, avec la liste des fichiers consultés"
+    "inputs": "Une question en langage naturel, posée dans la conversation",
+    "outputs": "Une réponse en texte, avec les fichiers consultés"
   },
-  "usage": "node agent.mjs ./mes-notes \"Quelle est la date de la prochaine réunion ?\"\nnode agent.mjs ./mes-notes            # mode interactif\nnode agent.mjs ./mes-notes --verbeux \"...\"   # affiche les outils appelés",
+  "usage": "Serveur MCP sur l'entrée standard :\nAGENT_DOSSIER=./exemples/notes node server/index.mjs\n\nEssai avec l'inspecteur MCP :\nAGENT_DOSSIER=./exemples/notes npx @modelcontextprotocol/inspector node server/index.mjs\n\nEn ligne de commande avec Ollama (sans Claude Desktop) :\nnode agent.mjs ./exemples/notes \"Quelle est la date de la prochaine réunion ?\"",
   "license": "MIT"
 }
