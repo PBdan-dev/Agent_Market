@@ -1,0 +1,12 @@
+node_modules
+.next
+.env
+*.db
+*.db-journal
+storage/
+next-env.d.ts
+*.tsbuildinfo
+coverage
+__pycache__/
+*.pyc
+.DS_Store

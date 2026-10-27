@@ -1,0 +1,9 @@
+{
+  "job_id": "job_8f3a",
+  "status": "done",
+  "result": {
+    "mesh_url": "https://mesh.exemple.agent-market/v1/jobs/job_8f3a/vase.obj",
+    "triangles": 4960,
+    "shape": "vase"
+  }
+}

@@ -1,0 +1,9 @@
+# Les agents logiciels, du script à l'assistant autonome
+
+Un agent logiciel est un programme qui poursuit un objectif en choisissant lui-même ses actions. À la différence d'un script, qui exécute toujours la même suite d'instructions, l'agent observe son environnement, décide, agit, puis observe le résultat de son action avant de décider à nouveau. Cette boucle est décrite depuis les années 1990 dans les travaux sur les systèmes multi-agents, bien avant l'arrivée des grands modèles de langage.
+
+Les modèles de langage ont changé l'échelle du phénomène. Depuis 2023, un agent peut être construit en quelques dizaines de lignes : un modèle reçoit un objectif, une liste d'outils (lire un fichier, interroger une base, envoyer un message) et décide à chaque étape quel outil appeler. En 2024, plusieurs protocoles sont apparus pour standardiser la façon dont un agent expose ses outils ou dialogue avec un autre agent, ce qui permet de composer des agents venant d'éditeurs différents.
+
+Trois limites restent à l'ordre du jour. La première est la fiabilité : un agent peut se tromper d'outil ou boucler sans conclure, d'où l'importance de fixer un nombre maximal d'étapes et de journaliser chaque action. La deuxième est la sécurité : un agent qui lit des documents peut y rencontrer des instructions malveillantes qu'il prendra pour des consignes. La troisième est le coût : chaque étape consomme des appels au modèle, et un agent mal borné peut coûter dix fois plus qu'un script équivalent.
+
+Pour un usage personnel, la recommandation la plus fréquente est de commencer par des agents à périmètre étroit, avec un modèle local pour les données sensibles et des outils en lecture seule, puis d'élargir progressivement les permissions une fois le comportement observé sur plusieurs dizaines d'exécutions.

@@ -1,0 +1,63 @@
+{
+  "schema": "agent-market/v2",
+  "name": "Questions sur un dossier",
+  "version": "2.0.0",
+  "kind": "download",
+  "summary": "Répond à vos questions sur les fichiers d'un dossier en allant lire lui-même les documents utiles.",
+  "objective": "Trouver la réponse à une question dans les fichiers texte d'un dossier (notes, comptes rendus, documentation) en utilisant des outils de liste, de lecture et de recherche, puis répondre en citant les fichiers consultés.",
+  "capabilities": [
+    "Liste, cherche et lit les fichiers texte d'un dossier (.md, .txt, .csv, .json, .yaml, .html, code source)",
+    "Choisit lui-même les fichiers pertinents au lieu de tout lire",
+    "Cite les fichiers utilisés dans sa réponse",
+    "Dit clairement quand l'information n'est pas dans le dossier, plutôt que d'inventer",
+    "Ne sort jamais du dossier choisi à l'installation et n'écrit aucun fichier"
+  ],
+  "tags": {
+    "category": ["Recherche"],
+    "theme": ["Documents", "Automatisation"],
+    "technology": ["MCP", "Node.js"]
+  },
+  "protocol": "MCP",
+  "model": {
+    "uses": "host",
+    "needs": { "toolCalling": true },
+    "note": "Dans Claude Desktop, c'est Claude qui raisonne et appelle les outils de l'agent. En ligne de commande (agent.mjs), l'agent peut aussi tourner avec un modèle local Ollama, par exemple llama3.2."
+  },
+  "prompts": {
+    "system": "prompts/system.md",
+    "note": "La méthode (chercher, lire, citer, ne rien inventer) est transmise au modèle comme consignes du serveur MCP et comme prompt « questions_dossier »."
+  },
+  "tools": [
+    { "name": "lister_fichiers", "description": "Liste les fichiers texte du dossier ou d'un sous-dossier, avec leur taille" },
+    { "name": "lire_fichier", "description": "Renvoie le contenu d'un fichier, tronqué à 12 000 caractères" },
+    { "name": "chercher", "description": "Cherche un mot ou une expression dans tous les fichiers et renvoie les lignes trouvées" }
+  ],
+  "runtime": {
+    "language": "node",
+    "version": ">=18",
+    "entrypoint": "server/index.mjs"
+  },
+  "parameters": [
+    {
+      "key": "dossier",
+      "type": "directory",
+      "label": "Dossier à interroger",
+      "description": "L'agent ne pourra lire que les fichiers de ce dossier et de ses sous-dossiers.",
+      "required": true
+    }
+  ],
+  "permissions": { "files": "read", "network": "none" },
+  "dependencies": { "standalone": true, "requires": [] },
+  "requirements": {
+    "ramGb": 0.1,
+    "vramGb": 0,
+    "os": ["win32", "darwin", "linux"],
+    "note": "Aucune puissance particulière : le raisonnement est fait par le modèle de l'application."
+  },
+  "io": {
+    "inputs": "Une question en langage naturel, posée dans la conversation",
+    "outputs": "Une réponse en texte, avec les fichiers consultés"
+  },
+  "usage": "Serveur MCP sur l'entrée standard :\nAGENT_DOSSIER=./exemples/notes node server/index.mjs\n\nEssai avec l'inspecteur MCP :\nAGENT_DOSSIER=./exemples/notes npx @modelcontextprotocol/inspector node server/index.mjs\n\nEn ligne de commande avec Ollama (sans Claude Desktop) :\nnode agent.mjs ./exemples/notes \"Quelle est la date de la prochaine réunion ?\"",
+  "license": "MIT"
+}

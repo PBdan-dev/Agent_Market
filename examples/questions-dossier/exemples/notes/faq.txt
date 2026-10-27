@@ -1,0 +1,5 @@
+Q : Comment réinitialiser mon mot de passe Orion ?
+R : Sur la page de connexion, cliquer sur « Mot de passe oublié », puis suivre le lien reçu par e-mail. Le lien est valable 30 minutes.
+
+Q : Qui contacter en cas de panne ?
+R : Nadia au support, par e-mail. En dehors des heures de bureau, Marc est l'astreinte technique.

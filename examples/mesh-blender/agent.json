@@ -1,0 +1,112 @@
+{
+  "schema": "agent-market/v2",
+  "name": "Mesh 3D sur Blender",
+  "version": "2.0.0",
+  "kind": "rental",
+  "summary": "Génère un mesh 3D à partir d'une description. Démonstration de location : forme simple, paiement simulé.",
+  "objective": "Fournir en quelques secondes un mesh 3D fermé, au format OBJ, à partir d'une description en langage naturel, sans que le client ait à installer Blender ni à disposer d'un GPU. Cette version de démonstration sert à tester la location d'agent à agent : la forme produite est simple et rien n'est facturé.",
+  "description": "Le service tourne chez son créateur ; Agent Market sert d'intermédiaire. L'orchestrateur du client (Claude, ou tout agent compatible MCP) trouve cet agent dans le catalogue, lance une tâche avec une description, suit son avancement puis récupère le lien du fichier. Démonstration : la forme est choisie d'après les mots de la description (vase, bouteille, bol, tasse, sphère, cube, cylindre, cône, pyramide, anneau) ; une description non reconnue donne un vase.",
+  "capabilities": [
+    "Génère un mesh 3D fermé (sans trou ni face en double) à partir d'une description en français ou en anglais",
+    "Respecte un nombre maximal de triangles, de 500 à 50 000",
+    "Deux styles : low-poly (facettes visibles) ou lisse",
+    "Livre un fichier OBJ, ouvrable dans Blender et tout logiciel 3D",
+    "Fonctionne en tâche asynchrone : lancement, suivi de l'avancement, résultat",
+    "Démonstration : formes simples uniquement, paiement simulé (rien n'est débité)"
+  ],
+  "tags": {
+    "category": [
+      "3D & création"
+    ],
+    "theme": [
+      "Modélisation 3D"
+    ],
+    "technology": [
+      "Blender",
+      "GPU",
+      "MCP"
+    ]
+  },
+  "protocol": "HTTP",
+  "model": {
+    "uses": "own",
+    "note": "Côté créateur : analyse de la description, puis génération et nettoyage du mesh dans Blender. Le client n'a aucun modèle à installer."
+  },
+  "prompts": {
+    "note": "Les prompts d'analyse de la demande et de contrôle qualité sont propriétaires et restent chez le créateur."
+  },
+  "tools": [
+    {
+      "name": "Blender 4.2 en mode serveur",
+      "description": "génération, nettoyage, décimation et export du mesh"
+    },
+    {
+      "name": "contrôle qualité",
+      "description": "vérifie que le mesh est fermé et sous la limite de triangles"
+    }
+  ],
+  "dependencies": {
+    "standalone": true,
+    "requires": []
+  },
+  "requirements": {
+    "note": "Côté client : aucune puissance requise, une simple connexion Internet. Côté créateur : un serveur avec GPU."
+  },
+  "io": {
+    "inputs": "Une description de l'objet, le nombre maximal de triangles et le style",
+    "outputs": "Le lien de téléchargement du fichier OBJ, le nombre de triangles et la forme obtenue"
+  },
+  "usage": "Depuis un orchestrateur MCP connecté à Agent Market :\n1. lister_agents (ou voir_agent « mesh-3d-sur-blender ») pour lire le contrat ;\n2. lancer_tache avec { \"description\": \"un vase élancé\", \"triangles_max\": 5000, \"style\": \"lisse\" } ;\n3. suivre_tache jusqu'à l'état « terminée », puis télécharger le fichier.\n\nContrat HTTP attendu côté créateur : contrat/openapi.yaml.",
+  "license": "Usage commercial du résultat autorisé",
+  "rental": {
+    "price": 5,
+    "currency": "EUR",
+    "unit": "par mesh",
+    "endpoint": "demo:mesh-blender",
+    "input": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "L'objet à modéliser, en langage naturel (ex. « un vase élancé »)",
+          "maxLength": 500
+        },
+        "triangles_max": {
+          "type": "integer",
+          "description": "Nombre maximal de triangles du mesh",
+          "minimum": 500,
+          "maximum": 50000,
+          "default": 5000
+        },
+        "style": {
+          "type": "string",
+          "description": "Facettes visibles ou surface lisse",
+          "enum": [
+            "low-poly",
+            "lisse"
+          ],
+          "default": "low-poly"
+        },
+        "format": {
+          "type": "string",
+          "description": "Format du fichier livré",
+          "enum": [
+            "obj"
+          ],
+          "default": "obj"
+        }
+      },
+      "required": [
+        "description"
+      ]
+    },
+    "output": {
+      "type": "file",
+      "formats": [
+        "obj"
+      ],
+      "description": "Lien de téléchargement du mesh, nombre de triangles et forme obtenue"
+    },
+    "maxMinutes": 5
+  }
+}
