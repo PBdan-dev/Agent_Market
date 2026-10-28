@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Market</title>
+<style>
+  :root { --bg:#0f1115; --fg:#e8e8ea; --muted:#9aa0a6; --card:#181b21; --accent:#b794f4; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:32px 16px; }
+  h1 { margin:0 0 4px; } p { color:var(--muted); }
+  .agent { background:var(--card); border-radius:12px; padding:16px; margin:12px 0; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--accent); color:var(--accent); margin-left:8px; }
+  code { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Agent Market</h1>
+  <p>Catalogue des agents pour Orchestra. Orchestra lit <code>agents.json</code> à cette adresse.</p>
+  <div id="liste"><p>Chargement…</p></div>
+</main>
+<script>
+fetch("agents.json").then(r => r.json()).then(c => {
+  const el = document.getElementById("liste");
+  if (!c.agents || c.agents.length === 0) { el.innerHTML = "<p>Aucun agent publié pour l'instant.</p>"; return; }
+  el.innerHTML = "";
+  for (const a of c.agents) {
+    const d = document.createElement("div"); d.className = "agent";
+    const badge = a.certification?.statut === "orchestra_certified" ? "Orchestra Certified"
+                : a.certification?.statut === "livrable_seul" ? "Livrable seul" : "Non certifié";
+    const h = document.createElement("strong"); h.textContent = `${a.name} ${a.version}`;
+    const b = document.createElement("span"); b.className = "badge"; b.textContent = badge;
+    const p = document.createElement("p"); p.textContent = a.description || "";
+    d.append(h, b, p); el.append(d);
+  }
+}).catch(() => { document.getElementById("liste").innerHTML = "<p>Catalogue illisible.</p>"; });
+</script>
+</body>
+</html>

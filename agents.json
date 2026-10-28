@@ -1,0 +1,11 @@
+{
+  "format": "agent-market/catalogue",
+  "version": 1,
+  "genere_le": "2026-10-28T16:00:00Z",
+  "market": {
+    "nom": "Agent Market",
+    "url": "https://pbdan-dev.github.io/Agent_Market/",
+    "cle_publique": null
+  },
+  "agents": []
+}
