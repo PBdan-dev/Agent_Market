@@ -27,9 +27,6 @@
         "expose_au_modele": true
       }
     ],
-    "outils_propres": [
-      "action_exemple"
-    ],
     "consignes": "Interdits et règles de conduite."
   },
   "taches": [
@@ -69,9 +66,6 @@
     }
   ],
   "memoire_propre": false,
-  "actions_sensibles": [
-    "action_sensitive_exemple"
-  ],
   "compatibilite": {
     "orchestra_min": "1.0.0",
     "contrat": 1

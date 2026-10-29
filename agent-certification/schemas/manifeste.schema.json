@@ -72,7 +72,6 @@
         "sait_faire",
         "ne_sait_pas_faire",
         "fonctions",
-        "outils_propres",
         "consignes"
       ],
       "properties": {
@@ -94,7 +93,7 @@
         },
         "fonctions": {
           "type": "array",
-          "description": "Toutes les fonctions préfixées du code, relevées par scanner_code.py.",
+          "description": "Toutes les fonctions préfixées du code (relevées par scanner_code.py --fiche), plus les fonctions sans préfixe proposées au modèle. Les outils proposés au modèle = expose_au_modele à true ; les actions irréversibles = préfixe action_sensitive_.",
           "items": {
             "type": "object",
             "required": [
@@ -105,7 +104,7 @@
             "properties": {
               "nom": {
                 "type": "string",
-                "pattern": "^(action_sensitive_|action_|read_|secret_|memory_)[a-z0-9_]+$"
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
               },
               "description": {
                 "type": "string",
@@ -120,13 +119,6 @@
               }
             }
           }
-        },
-        "outils_propres": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Noms des outils proposés au modèle (fonctions avec expose_au_modele = true, et outils sans effet)."
         },
         "consignes": {
           "type": "string",
@@ -280,12 +272,6 @@
       "type": "boolean",
       "description": "true si l'agent écrit dans agents/installes/<id>/memoire/."
     },
-    "actions_sensibles": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "donnees_envoyees": {
       "type": "string"
     },
@@ -414,7 +400,6 @@
       "acces_declares",
       "identifiants",
       "memoire_propre",
-      "actions_sensibles",
       "taches"
     ],
     "properties": {

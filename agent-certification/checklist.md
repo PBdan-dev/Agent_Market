@@ -10,7 +10,7 @@
 - [ ] Un couple modèle de demande / modèle de livrable par type de tâche dans `modeles/` (C3)
 
 ## Code
-- [ ] `python scanner_code.py <paquet> --fiche` lancé, chaque fonction décrite dans `fiche.fonctions` (B3)
+- [ ] `python scanner_code.py <paquet> --fiche` lancé, chaque fonction décrite dans `fiche.fonctions`, `expose_au_modele` renseigné (B3)
 - [ ] `python scanner_code.py <paquet> --manifeste <paquet>/manifeste.json` : 0 anomalie (B2 à B5)
 - [ ] Paramètre `raison` sur chaque action proposée au modèle (B4)
 - [ ] `validation_requise` avant chaque `action_sensitive_` (C4)

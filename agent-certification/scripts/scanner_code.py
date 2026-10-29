@@ -117,18 +117,18 @@ def scanner(dossier):
 def comparer(resultats, manifeste):
     """Fiche ↔ code. Renvoie la liste des anomalies."""
     a = []
-    code = {f["nom"]: f for f in resultats["fonctions"] if f["prefixe"]}
+    tout = {f["nom"]: f for f in resultats["fonctions"]}
+    code = {n: f for n, f in tout.items() if f["prefixe"]}
     fiche = {f["nom"]: f for f in manifeste.get("fiche", {}).get("fonctions", [])}
     for n in sorted(set(code) - set(fiche)):
-        a.append(f"fonction du code absente de la fiche : {n}")
-    for n in sorted(set(fiche) - set(code)):
+        a.append(f"fonction préfixée du code absente de la fiche : {n}")
+    for n in sorted(set(fiche) - set(tout)):
         a.append(f"fonction de la fiche absente du code : {n}")
-    exposes = set(manifeste.get("fiche", {}).get("outils_propres", []))
     for n, f in fiche.items():
-        if f.get("expose_au_modele") and n not in exposes:
-            a.append(f"{n} est exposée au modèle mais absente de outils_propres")
-        if n in code and f.get("expose_au_modele") and prefixe(n) in ("action_", "action_sensitive_") \
-                and "raison" not in code[n]["params"]:
+        if not prefixe(n) and not f.get("expose_au_modele"):
+            a.append(f"{n} : fonction sans préfixe dans la fiche alors qu'elle n'est pas proposée au modèle")
+        if n in tout and f.get("expose_au_modele") and prefixe(n) in ("action_", "action_sensitive_") \
+                and "raison" not in tout[n]["params"]:
             a.append(f"{n} : paramètre « raison » obligatoire (rationale avant chaque action)")
         if f.get("secours_de") and f["secours_de"] not in fiche:
             a.append(f"{n} : secours_de « {f['secours_de']} » ne désigne aucune fonction de la fiche")

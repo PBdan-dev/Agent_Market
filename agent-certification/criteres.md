@@ -24,7 +24,7 @@ Préfixes (liste fermée) : `action_` (effet réversible), `action_sensitive_` (
 |---|---|---|
 | B1 | Une fonction = un préfixe ; une fonction qui fait deux choses est scindée | revue |
 | B2 | Aucun accès réseau, écriture disque, exécution de programme ou accès au coffre hors d'une fonction préfixée autorisée ; pas de code dynamique (`eval`, `exec`) | scan |
-| B3 | `fiche.fonctions` = fonctions préfixées du code, sans manque ni surplus | scan `--manifeste` |
+| B3 | `fiche.fonctions` = fonctions préfixées du code + fonctions sans préfixe proposées au modèle, sans manque ni surplus. C'est la seule liste : les outils proposés au modèle sont ceux à `expose_au_modele: true`, les actions irréversibles sont les `action_sensitive_` | scan `--manifeste` |
 | B4 | Toute fonction `action_` ou `action_sensitive_` proposée au modèle a un paramètre `raison` (rationale obligatoire) | scan |
 | B5 | Outil de secours : déclaré dans la fiche (`secours_de`) | scan |
 | B6 | Aucun appel sensible caché derrière un nom anodin (méthode d'objet, bibliothèque non listée par le scan) | revue |

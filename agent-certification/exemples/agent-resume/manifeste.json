@@ -3,36 +3,92 @@
   "id": "agent-resume",
   "name": "Résumé de fichier (exemple)",
   "version": "1.0.0",
-  "author": { "nom": "PB", "contact": "https://github.com/PBdan-dev" },
+  "author": {
+    "nom": "PB",
+    "contact": "https://github.com/PBdan-dev"
+  },
   "description": "Résume en 5 à 10 lignes un fichier texte du projet. Agent d'exemple du kit de certification.",
   "categorie": "redaction",
-  "capabilities": ["résumé", "texte"],
+  "capabilities": [
+    "résumé",
+    "texte"
+  ],
   "fiche": {
-    "sait_faire": ["Résumer en français un fichier texte (.txt, .md) du dossier du projet"],
-    "ne_sait_pas_faire": ["Lire un PDF, un .docx ou une image", "Résumer plusieurs fichiers en une mission", "Vérifier la fidélité du résumé"],
-    "fonctions": [
-      { "nom": "read_fichier_projet", "description": "Lit le fichier à résumer dans le dossier du projet, encadré comme donnée.", "expose_au_modele": false },
-      { "nom": "read_modele", "description": "Appelle le modèle par la porte d'Orchestra.", "expose_au_modele": false },
-      { "nom": "action_ecrire_livrable", "description": "Écrit le résumé dans un nouveau fichier du projet, sans rien écraser.", "expose_au_modele": false },
-      { "nom": "memory_lire", "description": "Lit la mémoire de l'agent (nombre de missions).", "expose_au_modele": false },
-      { "nom": "memory_ecrire", "description": "Met à jour la mémoire de l'agent.", "expose_au_modele": false }
+    "sait_faire": [
+      "Résumer en français un fichier texte (.txt, .md) du dossier du projet"
     ],
-    "outils_propres": [],
+    "ne_sait_pas_faire": [
+      "Lire un PDF, un .docx ou une image",
+      "Résumer plusieurs fichiers en une mission",
+      "Vérifier la fidélité du résumé"
+    ],
+    "fonctions": [
+      {
+        "nom": "read_fichier_projet",
+        "description": "Lit le fichier à résumer dans le dossier du projet, encadré comme donnée.",
+        "expose_au_modele": false
+      },
+      {
+        "nom": "read_modele",
+        "description": "Appelle le modèle par la porte d'Orchestra.",
+        "expose_au_modele": false
+      },
+      {
+        "nom": "action_ecrire_livrable",
+        "description": "Écrit le résumé dans un nouveau fichier du projet, sans rien écraser.",
+        "expose_au_modele": false
+      },
+      {
+        "nom": "memory_lire",
+        "description": "Lit la mémoire de l'agent (nombre de missions).",
+        "expose_au_modele": false
+      },
+      {
+        "nom": "memory_ecrire",
+        "description": "Met à jour la mémoire de l'agent.",
+        "expose_au_modele": false
+      }
+    ],
     "consignes": "N'écrase jamais un fichier existant. N'écrit que dans le dossier du projet et dans sa mémoire."
   },
   "taches": [
-    { "type": "resumer-fichier", "modele_demande": "modeles/resumer-fichier.demande.json", "modele_livrable": "modeles/resumer-fichier.livrable.json" }
+    {
+      "type": "resumer-fichier",
+      "modele_demande": "modeles/resumer-fichier.demande.json",
+      "modele_livrable": "modeles/resumer-fichier.livrable.json"
+    }
   ],
-  "execution": { "type": "local", "systemes": ["windows-x64"], "commande": "python agent.py", "protocole": "stdio-json" },
-  "modele": { "via": "porte", "demande": "inherit", "minimum": "qwen3.5:9b", "recommande": "qwen3.6:27b" },
-  "ressources": { "vram_go": 0, "gpu_exclusif": false },
+  "execution": {
+    "type": "local",
+    "systemes": [
+      "windows-x64"
+    ],
+    "commande": "python agent.py",
+    "protocole": "stdio-json"
+  },
+  "modele": {
+    "via": "porte",
+    "demande": "inherit",
+    "minimum": "qwen3.5:9b",
+    "recommande": "qwen3.6:27b"
+  },
+  "ressources": {
+    "vram_go": 0,
+    "gpu_exclusif": false
+  },
   "reseau_declare": [],
-  "acces_declares": { "fichiers": "dossier du projet de la mission ; agents/installes/agent-resume/memoire/" },
+  "acces_declares": {
+    "fichiers": "dossier du projet de la mission ; agents/installes/agent-resume/memoire/"
+  },
   "identifiants": [],
   "memoire_propre": true,
-  "actions_sensibles": [],
-  "compatibilite": { "orchestra_min": "1.0.0", "contrat": 1 },
-  "certification": { "statut": "non_certifie" },
+  "compatibilite": {
+    "orchestra_min": "1.0.0",
+    "contrat": 1
+  },
+  "certification": {
+    "statut": "non_certifie"
+  },
   "licence": "MIT",
   "color": "#68d391",
   "icon": "text"
