@@ -32,9 +32,10 @@ def empreintes(d):
             for f in d.rglob("*") if f.is_file() and "__pycache__" not in f.parts}
 
 class Porte(http.server.ThreadingHTTPServer):
-    def __init__(self, jeton, ollama, modele, journal, delai=0):
+    def __init__(self, jeton, ollama, modele, journal, delai=0, texte=None):
         super().__init__(("127.0.0.1", 0), Gestion)
         self.jeton, self.ollama, self.modele, self.journal, self.delai = jeton, ollama, modele, journal, delai
+        self.texte = texte or "Réponse de test de la porte."
         self.appels, self.tokens, self.refus = 0, 0, 0
         self.verrou = threading.Lock()
 
@@ -58,7 +59,7 @@ class Gestion(http.server.BaseHTTPRequestHandler):
             with urllib.request.urlopen(req, timeout=900) as r:
                 rep = json.loads(r.read())
         else:
-            texte = "Réponse de test de la porte."
+            texte = p.texte
             rep = ({"message": {"role": "assistant", "content": texte}, "done": True}
                    if self.path.startswith("/api/") else
                    {"choices": [{"message": {"role": "assistant", "content": texte}}]})
@@ -102,7 +103,7 @@ def rejouer(paquet, test_path, args, sortie):
     dossier_sortie.mkdir(parents=True, exist_ok=True)
     jeton = secrets.token_hex(16)
     porte = Porte(jeton, args.get("ollama"), args.get("modele", m.get("modele", {}).get("recommande")),
-                  dossier_sortie / "echanges.jsonl", float(t.get("delai_porte_s", 0)))
+                  dossier_sortie / "echanges.jsonl", float(t.get("delai_porte_s", 0)), t.get("reponse_porte_test"))
     threading.Thread(target=porte.serve_forever, daemon=True).start()
 
     mission = json.loads(json.dumps(t["mission"]).replace("PROJET_DE_TEST", str(projet).replace("\\", "/")))
@@ -179,6 +180,9 @@ def rejouer(paquet, test_path, args, sortie):
               f"état {compte_rendu.get('etat')} parmi les états acceptés {t['etats_acceptes']}")
         for attendu in t.get("evenements_attendus", []):
             c(any(e.get("type") == attendu for e in evenements), f"événement « {attendu} » émis")
+        cr_texte = json.dumps(compte_rendu, ensure_ascii=False)
+        for attendu in t.get("compte_rendu_contient", []):
+            c(attendu in cr_texte, f"compte rendu contient « {attendu} »")
         if t.get("mal_formee"):
             c(compte_rendu.get("etat") == "echec" and compte_rendu.get("motif"), "mission mal formée refusée avec motif")
     c(porte.refus == 0, f"aucun appel à la porte avec un mauvais jeton ({porte.refus})")
