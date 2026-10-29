@@ -25,5 +25,12 @@
   "critere_reussite": "resume.md existe, 5 à 10 lignes, en français",
   "fichiers_projet": {
     "texte.md": "Orchestra est un agent orchestrateur local.\nIl délègue le travail à des agents.\nIl garde une mémoire lisible.\nIl vérifie les livrables.\nIl ne modifie jamais un livrable."
-  }
+  },
+  "etats_acceptes": [
+    "termine"
+  ],
+  "evenements_attendus": [
+    "demarrage",
+    "termine"
+  ]
 }

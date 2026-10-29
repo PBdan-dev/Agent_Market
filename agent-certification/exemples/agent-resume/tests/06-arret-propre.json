@@ -31,5 +31,8 @@
       "apres_evenement": "demarrage",
       "type": "arret"
     }
+  ],
+  "etats_acceptes": [
+    "arrete_proprement"
   ]
 }
