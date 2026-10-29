@@ -181,8 +181,12 @@ def rejouer(paquet, test_path, args, sortie):
         for attendu in t.get("evenements_attendus", []):
             c(any(e.get("type") == attendu for e in evenements), f"événement « {attendu} » émis")
         cr_texte = json.dumps(compte_rendu, ensure_ascii=False)
-        for attendu in t.get("compte_rendu_contient", []):
-            c(attendu in cr_texte, f"compte rendu contient « {attendu} »")
+        if t.get("reponse_porte_test") and args.get("ollama"):
+            # La réponse fixe n'est pas utilisée avec un vrai modèle : ces contrôles n'ont pas de sens.
+            res["non_controle"] = "compte_rendu_contient ignoré : réponse fixe de la porte non utilisée avec --ollama"
+        else:
+            for attendu in t.get("compte_rendu_contient", []):
+                c(attendu in cr_texte, f"compte rendu contient « {attendu} »")
         if t.get("mal_formee"):
             c(compte_rendu.get("etat") == "echec" and compte_rendu.get("motif"), "mission mal formée refusée avec motif")
     c(porte.refus == 0, f"aucun appel à la porte avec un mauvais jeton ({porte.refus})")
@@ -212,6 +216,8 @@ def main(argv):
             print(f"  {'OK ' if ok else 'KO '} {msg}")
             echecs += not ok
         print(f"  À JUGER  critère : {r['critere_reussite']}")
+        if r.get("non_controle"):
+            print(f"  NON CONTRÔLÉ  {r['non_controle']}")
         mz = r["mesures"]
         print(f"  mesures : {mz['duree_s']} s, {mz['pas']} appel(s) au modèle, {mz['tokens']} tokens")
         cur = mesures.setdefault(mz["type_tache"], {"duree_max_s": 0, "tokens_max": 0, "pas_max": 0})

@@ -59,7 +59,7 @@ python scripts/rejouer_tests.py exemples/agent-resume --ollama http://127.0.0.1:
 }
 ```
 
-`etats_acceptes` et `evenements_attendus` (facultatifs) sont contrôlés automatiquement. Un arrêt ou une pause est asynchrone : un agent qui finit son étape avant de lire le message répond légitimement `termine`. Pour un agent en une seule étape, accepter les deux états. `delai_porte_s` ralentit la porte de test pour qu'un arrêt ou une pause arrive pendant un appel au modèle. `memoire_agent` pré-remplit la mémoire de l'agent (test de réutilisation ou d'empoisonnement de la mémoire). `reponse_porte_test` fixe le texte rendu par la porte de test (sans `--ollama`), pour tester de façon déterministe le traitement d'une réponse du modèle (par ex. une pièce jointe inventée). `compte_rendu_contient` liste des textes qui doivent figurer dans le compte rendu.
+`etats_acceptes` et `evenements_attendus` (facultatifs) sont contrôlés automatiquement. Un arrêt ou une pause est asynchrone : un agent qui finit son étape avant de lire le message répond légitimement `termine`. Pour un agent en une seule étape, accepter les deux états. `delai_porte_s` ralentit la porte de test pour qu'un arrêt ou une pause arrive pendant un appel au modèle. `memoire_agent` pré-remplit la mémoire de l'agent (test de réutilisation ou d'empoisonnement de la mémoire). `reponse_porte_test` fixe le texte rendu par la porte de test (sans `--ollama`), pour tester de façon déterministe le traitement d'une réponse du modèle (par ex. une pièce jointe inventée). `compte_rendu_contient` liste des textes qui doivent figurer dans le compte rendu. Avec `--ollama`, un test qui a une `reponse_porte_test` n'applique pas `compte_rendu_contient` (affiché « NON CONTRÔLÉ »).
 
 ## Protocole stdio-json (proposition)
 
