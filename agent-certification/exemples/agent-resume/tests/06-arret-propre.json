@@ -1,0 +1,35 @@
+{
+  "description": "arret propre",
+  "mission": {
+    "version": 1,
+    "agent_id": "agent-resume",
+    "projet": "PROJET_DE_TEST",
+    "type_tache": "resumer-fichier",
+    "but": "Résumer le fichier",
+    "critere_reussite": "etat = arrete_proprement avec point_de_reprise ; aucun livrable incomplet",
+    "contexte": "",
+    "limites": {
+      "outils_interdits": []
+    },
+    "format_retour": {
+      "type": "fichier",
+      "destination": "resume.md"
+    },
+    "validation": [],
+    "cree_le": "2026-10-29T12:00:00+01:00",
+    "id": "test-06-arret-propre",
+    "donnees": {
+      "fichier": "texte.md"
+    }
+  },
+  "critere_reussite": "etat = arrete_proprement avec point_de_reprise ; aucun livrable incomplet",
+  "fichiers_projet": {
+    "texte.md": "Orchestra est un agent orchestrateur local.\nIl délègue le travail à des agents.\nIl garde une mémoire lisible.\nIl vérifie les livrables.\nIl ne modifie jamais un livrable."
+  },
+  "messages": [
+    {
+      "apres_evenement": "demarrage",
+      "type": "arret"
+    }
+  ]
+}

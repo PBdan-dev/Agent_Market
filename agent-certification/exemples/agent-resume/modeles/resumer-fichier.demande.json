@@ -1,0 +1,7 @@
+{
+  "type": "object",
+  "required": ["fichier"],
+  "properties": {
+    "fichier": { "type": "string", "pattern": "\\.(txt|md)$", "description": "Chemin du fichier à résumer, relatif au dossier du projet." }
+  }
+}

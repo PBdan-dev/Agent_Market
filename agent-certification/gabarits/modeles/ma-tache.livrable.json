@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "description": "Forme exacte du livrable (colonnes, valeurs autorisées).",
+  "required": [
+    "…"
+  ],
+  "properties": {
+    "…": {
+      "type": "string",
+      "enum": [
+        "valeur1",
+        "valeur2"
+      ]
+    }
+  }
+}

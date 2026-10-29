@@ -1,0 +1,32 @@
+{
+  "description": "…",
+  "mission": {
+    "version": 1,
+    "agent_id": "mon-agent",
+    "projet": "PROJET_DE_TEST",
+    "type_tache": "ma-tache",
+    "but": "Résumer le fichier",
+    "critere_reussite": "Critère vérifiable.",
+    "contexte": "",
+    "limites": {
+      "outils_interdits": []
+    },
+    "format_retour": {
+      "type": "fichier",
+      "destination": "resume.md"
+    },
+    "validation": [],
+    "cree_le": "2026-10-29T12:00:00+01:00",
+    "id": "test-01",
+    "donnees": {
+      "…": "…"
+    }
+  },
+  "critere_reussite": "Critère vérifiable.",
+  "fichiers_projet": {
+    "entree.txt": "Contenu de départ du dossier projet."
+  },
+  "messages": [],
+  "mal_formee": false,
+  "piege": false
+}

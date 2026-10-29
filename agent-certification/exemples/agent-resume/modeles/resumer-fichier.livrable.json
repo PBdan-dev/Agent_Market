@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "description": "Livrable : un fichier .md de 5 à 10 lignes, écrit à format_retour.destination.",
+  "required": ["fichier", "lignes"],
+  "properties": {
+    "fichier": { "type": "string", "pattern": "\\.md$" },
+    "lignes": { "type": "integer", "description": "Entre 5 et 10." }
+  }
+}
