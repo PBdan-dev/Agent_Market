@@ -16,7 +16,10 @@ MOTIFS = {
     "clé AWS": r"AKIA[0-9A-Z]{16}",
     "jeton Slack": r"xox[abprs]-[A-Za-z0-9-]{10,}",
     "en-tête Bearer": r"Bearer\s+[A-Za-z0-9._~+/-]{20,}=*",
-    "mot de passe d'application Google": r"\b[a-z]{4} [a-z]{4} [a-z]{4} [a-z]{4}\b",
+    # 4 groupes de 4 lettres : seulement près d'un mot comme « mot de passe » ou « password »,
+    # sinon une phrase ordinaire (« must work with what ») déclenche une fausse alerte.
+    "mot de passe d'application Google":
+        r"(?i:mot de passe|mdp|password|passwd|app.?pass)\W{0,30}\b[a-z]{4} [a-z]{4} [a-z]{4} [a-z]{4}\b",
     "champ mot de passe": r"(?i)\"?(password|mot_de_passe|passwd|secret|api_key|token)\"?\s*[:=]\s*\"[^\"]{6,}\"",
     "clé privée": r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
 }
