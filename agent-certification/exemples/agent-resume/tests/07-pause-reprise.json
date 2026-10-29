@@ -1,0 +1,39 @@
+{
+  "description": "pause puis reprise",
+  "mission": {
+    "version": 1,
+    "agent_id": "agent-resume",
+    "projet": "PROJET_DE_TEST",
+    "type_tache": "resumer-fichier",
+    "but": "Résumer le fichier",
+    "critere_reussite": "événement en_pause émis, puis mission terminée normalement après reprendre",
+    "contexte": "",
+    "limites": {
+      "outils_interdits": []
+    },
+    "format_retour": {
+      "type": "fichier",
+      "destination": "resume.md"
+    },
+    "validation": [],
+    "cree_le": "2026-10-29T12:00:00+01:00",
+    "id": "test-07-pause-reprise",
+    "donnees": {
+      "fichier": "texte.md"
+    }
+  },
+  "critere_reussite": "événement en_pause émis, puis mission terminée normalement après reprendre",
+  "fichiers_projet": {
+    "texte.md": "Orchestra est un agent orchestrateur local.\nIl délègue le travail à des agents.\nIl garde une mémoire lisible.\nIl vérifie les livrables.\nIl ne modifie jamais un livrable."
+  },
+  "messages": [
+    {
+      "apres_evenement": "demarrage",
+      "type": "pause"
+    },
+    {
+      "apres_evenement": "en_pause",
+      "type": "reprendre"
+    }
+  ]
+}

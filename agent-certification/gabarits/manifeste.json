@@ -1,0 +1,85 @@
+{
+  "format_manifeste": "2.0",
+  "id": "mon-agent",
+  "name": "Mon agent",
+  "version": "1.0.0",
+  "author": {
+    "nom": "PB",
+    "contact": "https://github.com/PBdan-dev"
+  },
+  "description": "Une phrase : ce que l'agent livre.",
+  "categorie": "…",
+  "capabilities": [
+    "…"
+  ],
+  "fiche": {
+    "sait_faire": [
+      "…"
+    ],
+    "ne_sait_pas_faire": [
+      "…",
+      "…"
+    ],
+    "fonctions": [
+      {
+        "nom": "action_exemple",
+        "description": "Remplacer par la sortie de scanner_code.py --fiche.",
+        "expose_au_modele": true
+      }
+    ],
+    "outils_propres": [
+      "action_exemple"
+    ],
+    "consignes": "Interdits et règles de conduite."
+  },
+  "taches": [
+    {
+      "type": "ma-tache",
+      "modele_demande": "modeles/ma-tache.demande.json",
+      "modele_livrable": "modeles/ma-tache.livrable.json"
+    }
+  ],
+  "execution": {
+    "type": "local",
+    "systemes": [
+      "windows-x64"
+    ],
+    "commande": "python agent.py",
+    "protocole": "stdio-json"
+  },
+  "modele": {
+    "via": "porte",
+    "demande": "inherit",
+    "minimum": "qwen3.5:9b",
+    "recommande": "qwen3.6:27b"
+  },
+  "ressources": {
+    "vram_go": 0,
+    "gpu_exclusif": false
+  },
+  "reseau_declare": [],
+  "acces_declares": {
+    "fichiers": "dossier du projet de la mission ; agents/installes/mon-agent/memoire/"
+  },
+  "identifiants": [
+    {
+      "nom": "exemple",
+      "type": "cle_api",
+      "raison": "Supprimer cette entrée si l'agent n'a besoin d'aucun identifiant."
+    }
+  ],
+  "memoire_propre": false,
+  "actions_sensibles": [
+    "action_sensitive_exemple"
+  ],
+  "compatibilite": {
+    "orchestra_min": "1.0.0",
+    "contrat": 1
+  },
+  "certification": {
+    "statut": "non_certifie"
+  },
+  "licence": "MIT",
+  "color": "#b794f4",
+  "icon": "…"
+}

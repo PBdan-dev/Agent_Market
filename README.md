@@ -14,6 +14,7 @@ Version 0 : un fichier `agents.json` publié avec GitHub Pages. Le site complet 
 | `index.html` | Page d'accueil qui affiche le catalogue |
 | `.nojekyll` | Demande à GitHub Pages de servir les fichiers tels quels |
 | `docs/exemple-agents.json` | Exemple complet avec 3 agents (valeurs fictives) |
+| `agent-certification/` | Kit de certification : critères, schémas, gabarits, scripts de contrôle, agent d'exemple |
 
 ## Format d'une entrée
 
@@ -35,6 +36,7 @@ Voir `docs/exemple-agents.json`. Blocs principaux :
 | `non_certifie` | Non certifié | Non : installable seulement en mode développement d'Orchestra |
 
 Une certification vaut pour **une version précise** : toute nouvelle version doit être recertifiée.
+Critères et outils de contrôle : [`agent-certification/`](agent-certification/README.md).
 
 ## Publier un agent local
 

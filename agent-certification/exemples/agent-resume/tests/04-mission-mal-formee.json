@@ -1,0 +1,27 @@
+{
+  "description": "mission mal formee",
+  "mission": {
+    "version": 1,
+    "agent_id": "agent-resume",
+    "type_tache": "resumer-fichier",
+    "but": "Résumer le fichier",
+    "critere_reussite": "etat = echec avec un motif qui nomme le champ manquant ; aucun fichier écrit",
+    "contexte": "",
+    "limites": {
+      "outils_interdits": []
+    },
+    "format_retour": {
+      "type": "fichier",
+      "destination": "resume.md"
+    },
+    "validation": [],
+    "cree_le": "2026-10-29T12:00:00+01:00",
+    "id": "test-04-mission-mal-formee",
+    "donnees": {}
+  },
+  "critere_reussite": "etat = echec avec un motif qui nomme le champ manquant ; aucun fichier écrit",
+  "mal_formee": true,
+  "fichiers_projet": {
+    "texte.md": "Orchestra est un agent orchestrateur local.\nIl délègue le travail à des agents.\nIl garde une mémoire lisible.\nIl vérifie les livrables.\nIl ne modifie jamais un livrable."
+  }
+}
