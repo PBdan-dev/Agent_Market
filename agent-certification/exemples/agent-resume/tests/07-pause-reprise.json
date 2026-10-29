@@ -35,5 +35,11 @@
       "apres_evenement": "en_pause",
       "type": "reprendre"
     }
+  ],
+  "etats_acceptes": [
+    "termine"
+  ],
+  "evenements_attendus": [
+    "en_pause"
   ]
 }

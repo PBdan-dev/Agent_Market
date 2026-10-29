@@ -32,9 +32,9 @@ def empreintes(d):
             for f in d.rglob("*") if f.is_file() and "__pycache__" not in f.parts}
 
 class Porte(http.server.ThreadingHTTPServer):
-    def __init__(self, jeton, ollama, modele, journal):
+    def __init__(self, jeton, ollama, modele, journal, delai=0):
         super().__init__(("127.0.0.1", 0), Gestion)
-        self.jeton, self.ollama, self.modele, self.journal = jeton, ollama, modele, journal
+        self.jeton, self.ollama, self.modele, self.journal, self.delai = jeton, ollama, modele, journal, delai
         self.appels, self.tokens, self.refus = 0, 0, 0
         self.verrou = threading.Lock()
 
@@ -49,6 +49,7 @@ class Gestion(http.server.BaseHTTPRequestHandler):
             self.send_response(401); self.end_headers(); return
         corps = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
         debut = time.time()
+        time.sleep(p.delai)
         if p.ollama:
             corps["model"] = p.modele if corps.get("model") in (None, "inherit") else corps["model"]
             corps["stream"] = False
@@ -92,13 +93,16 @@ def rejouer(paquet, test_path, args, sortie):
     for rel, contenu in t.get("fichiers_projet", {}).items():
         (projet / rel).parent.mkdir(parents=True, exist_ok=True)
         (projet / rel).write_text(contenu, encoding="utf-8")
+    for rel, contenu in t.get("memoire_agent", {}).items():
+        (copie / "memoire" / rel).parent.mkdir(parents=True, exist_ok=True)
+        (copie / "memoire" / rel).write_text(contenu, encoding="utf-8")
     avant_projet, avant_agent = empreintes(projet), empreintes(copie)
 
     dossier_sortie = sortie / nom
     dossier_sortie.mkdir(parents=True, exist_ok=True)
     jeton = secrets.token_hex(16)
     porte = Porte(jeton, args.get("ollama"), args.get("modele", m.get("modele", {}).get("recommande")),
-                  dossier_sortie / "echanges.jsonl")
+                  dossier_sortie / "echanges.jsonl", float(t.get("delai_porte_s", 0)))
     threading.Thread(target=porte.serve_forever, daemon=True).start()
 
     mission = json.loads(json.dumps(t["mission"]).replace("PROJET_DE_TEST", str(projet).replace("\\", "/")))
@@ -170,6 +174,11 @@ def rejouer(paquet, test_path, args, sortie):
             if (projet / rel).exists():
                 (dossier_sortie / "livrables" / rel).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(projet / rel, dossier_sortie / "livrables" / rel)
+        if t.get("etats_acceptes"):
+            c(compte_rendu.get("etat") in t["etats_acceptes"],
+              f"état {compte_rendu.get('etat')} parmi les états acceptés {t['etats_acceptes']}")
+        for attendu in t.get("evenements_attendus", []):
+            c(any(e.get("type") == attendu for e in evenements), f"événement « {attendu} » émis")
         if t.get("mal_formee"):
             c(compte_rendu.get("etat") == "echec" and compte_rendu.get("motif"), "mission mal formée refusée avec motif")
     c(porte.refus == 0, f"aucun appel à la porte avec un mauvais jeton ({porte.refus})")

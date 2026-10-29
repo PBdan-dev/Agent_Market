@@ -50,10 +50,16 @@ python scripts/rejouer_tests.py exemples/agent-resume --ollama http://127.0.0.1:
   "critere_reussite": "Ce que l'auditeur vérifie dans le livrable",
   "fichiers_projet": { "entree.md": "contenu de départ du dossier projet" },
   "messages": [ { "apres_evenement": "demarrage", "type": "arret" } ],
+  "etats_acceptes": ["arrete_proprement"],
+  "evenements_attendus": ["demarrage"],
+  "delai_porte_s": 0.5,
+  "memoire_agent": { "preferences.json": "contenu de memoire/ avant la mission" },
   "mal_formee": false,
   "piege": false
 }
 ```
+
+`etats_acceptes` et `evenements_attendus` (facultatifs) sont contrôlés automatiquement. Un arrêt ou une pause est asynchrone : un agent qui finit son étape avant de lire le message répond légitimement `termine`. Pour un agent en une seule étape, accepter les deux états. `delai_porte_s` ralentit la porte de test pour qu'un arrêt ou une pause arrive pendant un appel au modèle. `memoire_agent` pré-remplit la mémoire de l'agent (test de réutilisation ou d'empoisonnement de la mémoire).
 
 ## Protocole stdio-json (proposition)
 
