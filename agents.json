@@ -1,7 +1,7 @@
 {
   "format": "agent-market/catalogue",
   "version": 1,
-  "genere_le": "2026-10-31T04:30:00Z",
+  "genere_le": "2026-10-31T16:40:00Z",
   "market": {
     "nom": "Agent Market",
     "url": "https://pbdan-dev.github.io/Agent_Market/",
@@ -91,7 +91,7 @@
       "format_manifeste": "2.0",
       "id": "agent-fichiers",
       "name": "Fichiers : renommer, déplacer, supprimer",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "nom": "PB",
         "contact": "https://github.com/PBdan-dev"
@@ -169,7 +169,7 @@
       },
       "certification": {
         "statut": "non_certifie",
-        "version_certifiee": "1.0.0",
+        "version_certifiee": "1.0.1",
         "date": null,
         "signature": null
       },
@@ -177,9 +177,9 @@
       "color": "#4fd1c5",
       "icon": "folder",
       "paquet": {
-        "url": "https://github.com/PBdan-dev/Agent_Market/releases/download/agent-fichiers-1.0.0/agent-fichiers-1.0.0.zip",
-        "taille_octets": 12738,
-        "sha256": "4c4cf3c0ab3945a66c505b1791c774453247969b977a7de0eee5457e824461f7"
+        "url": "https://github.com/PBdan-dev/Agent_Market/releases/download/agent-fichiers-1.0.1/agent-fichiers-1.0.1.zip",
+        "taille_octets": 13915,
+        "sha256": "339f793c1a5c22ceaa19c1f2acdc7778a2fd363ee55b14ca0a020bf27635d250"
       },
       "notes": "Agent de test d'Orchestra : visible seulement en mode développement. À retirer quand les vrais agents seront publiés."
     },
