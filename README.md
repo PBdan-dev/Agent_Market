@@ -11,7 +11,8 @@ Version 0 : un fichier `agents.json` publié avec GitHub Pages. Le site complet 
 | Fichier | Rôle |
 |---|---|
 | `agents.json` | Catalogue lu par Orchestra : une entrée par agent |
-| `index.html` | Page d'accueil qui affiche le catalogue |
+| `index.html` | Site du Market : catalogue en tuiles, filtres et fiche de chaque agent ; il lit `agents.json` et n'écrit rien |
+| `icon.svg` | Icône du site |
 | `.nojekyll` | Demande à GitHub Pages de servir les fichiers tels quels |
 | `docs/exemple-agents.json` | Exemple complet avec 3 agents (valeurs fictives) |
 | `agent-certification/` | Kit de certification : critères, schémas, gabarits, scripts de contrôle, agent d'exemple |
