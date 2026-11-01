@@ -14,7 +14,7 @@ Pour chaque fichier de tests/ :
   5. relève durée, pas (appels au modèle) et tokens.
 Le critère de réussite propre à chaque test reste à juger par l'auditeur (livrables conservés dans --sortie).
 Bibliothèque standard Python uniquement."""
-import hashlib, http.server, json, os, secrets, shlex, shutil, subprocess, sys, tempfile, threading, time
+import base64, hashlib, http.server, json, os, secrets, shlex, shutil, subprocess, sys, tempfile, threading, time
 import urllib.request
 from pathlib import Path
 
@@ -93,7 +93,10 @@ def rejouer(paquet, test_path, args, sortie):
     projet.mkdir()
     for rel, contenu in t.get("fichiers_projet", {}).items():
         (projet / rel).parent.mkdir(parents=True, exist_ok=True)
-        (projet / rel).write_text(contenu, encoding="utf-8")
+        if contenu.startswith("base64:"):          # fichier binaire (PDF, Word, Excel…)
+            (projet / rel).write_bytes(base64.b64decode(contenu[len("base64:"):]))
+        else:
+            (projet / rel).write_text(contenu, encoding="utf-8")
     for rel, contenu in t.get("memoire_agent", {}).items():
         (copie / "memoire" / rel).parent.mkdir(parents=True, exist_ok=True)
         (copie / "memoire" / rel).write_text(contenu, encoding="utf-8")
