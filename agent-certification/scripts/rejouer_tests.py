@@ -14,7 +14,7 @@ Pour chaque fichier de tests/ :
   5. relève durée, pas (appels au modèle) et tokens.
 Le critère de réussite propre à chaque test reste à juger par l'auditeur (livrables conservés dans --sortie).
 Bibliothèque standard Python uniquement."""
-import hashlib, http.server, json, os, secrets, shlex, shutil, subprocess, sys, tempfile, threading, time
+import base64, hashlib, http.server, json, os, secrets, shlex, shutil, subprocess, sys, tempfile, threading, time
 import urllib.request
 from pathlib import Path
 
@@ -78,6 +78,35 @@ class Gestion(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+class Web(http.server.ThreadingHTTPServer):
+    """Mini serveur web du test (champ pages_web) : sert des pages fixes et note chaque adresse demandée."""
+    def __init__(self, pages):
+        super().__init__(("127.0.0.1", 0), PageWeb)
+        self.base = f"http://127.0.0.1:{self.server_address[1]}"
+        self.pages = {k: (v if isinstance(v, dict) else {"contenu": v}) for k, v in pages.items()}
+        self.demandes = []
+
+class PageWeb(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def do_GET(self):
+        w = self.server
+        w.demandes.append(self.path)
+        page = w.pages.get(self.path) or w.pages.get(self.path.split("?")[0])
+        if page is None:
+            self.send_response(404); self.end_headers(); return
+        contenu = page.get("contenu", "")
+        if contenu.startswith("base64:"):
+            data = base64.b64decode(contenu[len("base64:"):])
+        else:
+            data = contenu.replace("WEB_DE_TEST", w.base).encode("utf-8")
+        self.send_response(int(page.get("statut", 200)))
+        self.send_header("Content-Type", page.get("type", "text/html; charset=utf-8"))
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
 def rejouer(paquet, test_path, args, sortie):
     t = lire_json(test_path)
     m = lire_json(Path(paquet) / "manifeste.json")
@@ -93,7 +122,10 @@ def rejouer(paquet, test_path, args, sortie):
     projet.mkdir()
     for rel, contenu in t.get("fichiers_projet", {}).items():
         (projet / rel).parent.mkdir(parents=True, exist_ok=True)
-        (projet / rel).write_text(contenu, encoding="utf-8")
+        if contenu.startswith("base64:"):          # fichier binaire (PDF, Word, Excel…)
+            (projet / rel).write_bytes(base64.b64decode(contenu[len("base64:"):]))
+        else:
+            (projet / rel).write_text(contenu, encoding="utf-8")
     for rel, contenu in t.get("memoire_agent", {}).items():
         (copie / "memoire" / rel).parent.mkdir(parents=True, exist_ok=True)
         (copie / "memoire" / rel).write_text(contenu, encoding="utf-8")
@@ -109,6 +141,12 @@ def rejouer(paquet, test_path, args, sortie):
     mission = json.loads(json.dumps(t["mission"]).replace("PROJET_DE_TEST", str(projet).replace("\\", "/")))
     env = {**os.environ, "ORCHESTRA_MODELE_URL": f"http://127.0.0.1:{porte.server_address[1]}",
            "ORCHESTRA_JETON": jeton, "PYTHONIOENCODING": "utf-8"}
+    web = None
+    if t.get("pages_web"):
+        web = Web(t["pages_web"])
+        threading.Thread(target=web.serve_forever, daemon=True).start()
+        env["ORCHESTRA_TEST_WEB"] = web.base
+        mission = json.loads(json.dumps(mission).replace("WEB_DE_TEST", web.base))
     commande = shlex.split(m["execution"]["commande"], posix=os.name != "nt")
     if commande and commande[0] in ("python", "python3"):
         commande[0] = sys.executable
@@ -142,6 +180,12 @@ def rejouer(paquet, test_path, args, sortie):
         proc.kill()
     duree = round(time.time() - debut, 1)
     porte.shutdown()
+    if web:
+        web.shutdown()
+        (dossier_sortie / "pages_demandees.txt").write_text("\n".join(web.demandes), encoding="utf-8")
+        for chemin in t.get("pages_jamais_demandees", []):
+            vues = [d for d in web.demandes if d.split("?")[0] == chemin]
+            c(not vues, f"page « {chemin} » jamais demandée par l'agent" + ("" if not vues else f" ({len(vues)} fois)"))
     (dossier_sortie / "stderr.txt").write_text(proc.stderr.read() if proc.stderr else "", encoding="utf-8")
 
     # Contrôles automatiques
