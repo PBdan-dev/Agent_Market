@@ -4,37 +4,678 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agent Market</title>
+<meta name="description" content="Catalogue des agents pour Orchestra : agents certifiés, signés par le Market, à installer depuis Orchestra.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
-  :root { --bg:#0f1115; --fg:#e8e8ea; --muted:#9aa0a6; --card:#181b21; --accent:#b794f4; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
-  main { max-width:760px; margin:0 auto; padding:32px 16px; }
-  h1 { margin:0 0 4px; } p { color:var(--muted); }
-  .agent { background:var(--card); border-radius:12px; padding:16px; margin:12px 0; }
-  .badge { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--accent); color:var(--accent); margin-left:8px; }
-  code { color:var(--accent); }
+  /* Design repris du site Agent Market (PR #1) : fond sombre, halos animés, tuiles. */
+  :root {
+    --bg: #070b14;
+    --bg-2: #0c1222;
+    --surface: rgba(255, 255, 255, 0.035);
+    --surface-2: rgba(255, 255, 255, 0.07);
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.18);
+    --text: #e7ecf5;
+    --muted: #94a0b8;
+    --faint: #5f6a80;
+    --mint: #3ef0c6;
+    --cyan: #38bdf8;
+    --violet: #8b7cff;
+    --amber: #ffb454;
+    --danger: #f87171;
+    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+    background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans);
+    -webkit-font-smoothing: antialiased; font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  }
+  ::selection { background: rgba(62, 240, 198, 0.3); }
+  a { color: inherit; text-decoration: none; }
+  h1, h2, h3, p { margin: 0; }
+  code, .mono { font-family: var(--mono); }
+  .wrap { width: 100%; max-width: 72rem; margin: 0 auto; padding: 0 1rem; }
+  @media (min-width: 640px) { .wrap { padding: 0 1.5rem; } }
+
+  @keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes drift {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(6vw, -4vh, 0) scale(1.12); }
+    100% { transform: translate3d(-4vw, 5vh, 0) scale(0.96); }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(62, 240, 198, 0.55); }
+    60% { box-shadow: 0 0 0 8px rgba(62, 240, 198, 0); }
+  }
+  @keyframes menu-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  .fade-up { animation: fade-up 0.5s var(--ease) both; }
+
+  /* Fond : halos organiques en dérive lente + grille technique estompée */
+  .bg-layer {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden;
+    background:
+      radial-gradient(1100px 520px at 75% -10%, rgba(56, 189, 248, 0.1), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(139, 124, 255, 0.1), transparent 60%),
+      var(--bg);
+  }
+  .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.28; will-change: transform; animation: drift 40s ease-in-out infinite alternate; }
+  .blob-1 { width: 40vw; height: 40vw; left: -12vw; top: 8vh; background: radial-gradient(circle, var(--mint), transparent 65%); }
+  .blob-2 { width: 36vw; height: 36vw; right: -10vw; top: 30vh; background: radial-gradient(circle, var(--violet), transparent 65%); animation-duration: 52s; animation-delay: -18s; }
+  .blob-3 { width: 30vw; height: 30vw; left: 35vw; bottom: -18vh; background: radial-gradient(circle, var(--cyan), transparent 65%); animation-duration: 46s; animation-delay: -30s; }
+  .grid-overlay {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 10%, transparent 75%);
+    mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 10%, transparent 75%);
+  }
+
+  /* Navigation */
+  header.site { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid var(--line); background: rgba(7, 11, 20, 0.7); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+  header.site nav { display: flex; align-items: center; gap: 2rem; padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .logo { display: flex; align-items: center; gap: 0.625rem; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .logo b { color: var(--mint); font-weight: 700; }
+  .logo-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); animation: pulse-dot 2.6s ease-out infinite; }
+  .nav-links { display: none; align-items: center; gap: 1.5rem; font-size: 14px; }
+  .nav-right { display: none; margin-left: auto; align-items: center; gap: 0.5rem; }
+  .nav-link { position: relative; padding: 0.25rem 0; color: var(--muted); transition: color 0.25s; }
+  .nav-link::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--mint), var(--cyan)); transform: scaleX(0); transform-origin: left; transition: transform 0.35s var(--ease);
+  }
+  .nav-link:hover, .nav-link[aria-current="page"] { color: var(--text); }
+  .nav-link:hover::after, .nav-link[aria-current="page"]::after { transform: scaleX(1); }
+  .menu-btn { margin-left: auto; display: inline-flex; border: 1px solid var(--line); border-radius: 0.5rem; padding: 0.5rem; background: none; color: var(--muted); cursor: pointer; }
+  .menu-panel { display: none; border-top: 1px solid var(--line); background: rgba(12, 18, 34, 0.95); padding: 1rem; animation: menu-in 0.25s var(--ease) both; }
+  .menu-panel.open { display: block; }
+  .menu-panel a.item { display: block; border-radius: 0.5rem; padding: 0.625rem 0.75rem; font-size: 14px; color: var(--muted); }
+  .menu-panel a.item:hover { background: var(--surface-2); color: var(--text); }
+  .menu-panel .cta { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--line); display: flex; }
+  .menu-panel .cta a { flex: 1; }
+  @media (min-width: 768px) {
+    .nav-links, .nav-right { display: flex; }
+    .menu-btn, .menu-panel, .menu-panel.open { display: none; }
+  }
+
+  /* Boutons, puces, cartes */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 0.75rem; padding: 0.625rem 1rem; font: 600 14px/1.25 var(--sans); cursor: pointer; border: 0; transition: all 0.3s; }
+  .btn-primary { background: var(--mint); color: var(--bg); box-shadow: 0 8px 30px -10px rgba(62, 240, 198, 0.7); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 36px -10px rgba(62, 240, 198, 0.9); }
+  .btn-secondary { border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); }
+  .btn-secondary:hover { border-color: rgba(62, 240, 198, 0.5); background: var(--surface-2); }
+  .btn-ghost { background: none; color: var(--muted); }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+  .chip { display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); padding: 0.25rem 0.75rem; font: 500 12px/1.4 var(--sans); color: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .chip:hover { border-color: var(--line-strong); color: var(--text); }
+  .chip.active { border-color: rgba(62, 240, 198, 0.6); background: rgba(62, 240, 198, 0.1); color: var(--mint); }
+  .card { border-radius: 1rem; border: 1px solid var(--line); background: var(--surface); padding: 1.25rem; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); min-width: 0; }
+  .mono-label { font: 500 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint); }
+  .muted { color: var(--muted); }
+  .faint { color: var(--faint); }
+  .input { width: 100%; border-radius: 0.75rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.3); padding: 0.625rem 0.875rem; font: 14px/1.4 var(--sans); color: var(--text); outline: none; transition: all 0.2s; }
+  .input::placeholder { color: var(--faint); }
+  .input:focus { border-color: rgba(62, 240, 198, 0.6); box-shadow: 0 0 0 3px rgba(62, 240, 198, 0.2); }
+  .code { overflow-x: auto; border-radius: 0.75rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.4); padding: 0.75rem 1rem; font: 13px/1.6 var(--mono); color: var(--text); word-break: break-all; }
+
+  main.wrap { flex: 1; padding-top: 2rem; padding-bottom: 2.5rem; }
+  @media (min-width: 640px) { main.wrap { padding-top: 2.5rem; } }
+
+  /* Accueil */
+  .hero h1 { margin-top: 0.5rem; font-size: 1.875rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+  @media (min-width: 640px) { .hero h1 { font-size: 2.25rem; } }
+  .hero p.intro { margin-top: 0.5rem; max-width: 42rem; color: var(--muted); }
+  .toolbar { margin-top: 1.75rem; display: flex; flex-direction: column; gap: 1rem; }
+  .toolbar .row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+  .segments { display: inline-flex; border-radius: 0.75rem; border: 1px solid var(--line); background: var(--surface); padding: 0.25rem; }
+  .segments button { border: 0; background: none; cursor: pointer; border-radius: 0.5rem; padding: 0.375rem 0.875rem; font: 500 14px/1.4 var(--sans); color: var(--muted); transition: all 0.2s; }
+  .segments button:hover { color: var(--text); }
+  .segments button[aria-selected="true"] { background: rgba(62, 240, 198, 0.15); color: var(--mint); box-shadow: inset 0 0 0 1px rgba(62, 240, 198, 0.4); }
+  .search { flex: 1; min-width: 200px; }
+  .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .chips .clear { margin-left: auto; font-size: 12px; color: var(--muted); background: none; border: 0; cursor: pointer; }
+  .chips .clear:hover { color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
+  .count { margin: 2rem 0 0.75rem; font-size: 12px; color: var(--faint); }
+  .grid { display: grid; gap: 1.25rem; }
+  @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .empty { border-radius: 1rem; border: 1px dashed var(--line-strong); padding: 2.5rem; text-align: center; font-size: 14px; color: var(--muted); }
+
+  /* Tuiles d'agents */
+  .tile {
+    position: relative; border-radius: 18px; overflow: hidden; min-width: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+    border: 1px solid var(--line);
+    transition: transform 0.4s var(--ease), border-color 0.3s, box-shadow 0.3s;
+  }
+  .tile > a { display: block; }
+  .tile > a:focus-visible { outline: 2px solid rgba(62, 240, 198, 0.6); outline-offset: -2px; border-radius: 18px; }
+  .tile:hover { transform: translateY(-5px); border-color: rgba(62, 240, 198, 0.45); box-shadow: 0 24px 60px -24px rgba(62,240,198,0.4), 0 0 0 1px rgba(62,240,198,0.12); }
+  .tile[data-statut="non_certifie"]:hover { border-color: rgba(255,180,84,0.5); box-shadow: 0 24px 60px -24px rgba(255,180,84,0.4), 0 0 0 1px rgba(255,180,84,0.12); }
+  .tile[data-statut="livrable_seul"]:hover { border-color: rgba(56,189,248,0.5); box-shadow: 0 24px 60px -24px rgba(56,189,248,0.4), 0 0 0 1px rgba(56,189,248,0.12); }
+  .visual { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-bottom: 1px solid var(--line); }
+  .visual svg { display: block; width: 100%; height: 100%; }
+  .visual::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.09) 50%, transparent 65%);
+    transform: translateX(-110%); transition: transform 0.9s var(--ease);
+  }
+  .tile:hover .visual::after { transform: translateX(110%); }
+  .status { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 999px; border: 1px solid; padding: 0.125rem 0.625rem; font: 600 10px/1.6 var(--mono); text-transform: uppercase; letter-spacing: 0.12em; white-space: nowrap; }
+  .visual .status { position: absolute; left: 0.75rem; top: 0.75rem; background: rgba(7, 11, 20, 0.7); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .s-certified { border-color: rgba(62,240,198,0.5); color: var(--mint); }
+  .s-livrable { border-color: rgba(56,189,248,0.5); color: var(--cyan); }
+  .s-test { border-color: rgba(255,180,84,0.5); color: var(--amber); }
+  .tile .body { padding: 1rem; }
+  .tile .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile h3 { margin-top: 0.375rem; font-size: 17px; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; }
+  .tile p.desc { margin-top: 0.375rem; font-size: 14px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tile .foot { margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 12px; }
+  .tile .foot .price { font-weight: 600; white-space: nowrap; }
+  .tile .foot .by { color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .c-certified { color: var(--mint); } .c-livrable { color: var(--cyan); } .c-test { color: var(--amber); }
+
+  /* Brancher Orchestra */
+  .connect { margin-top: 3.5rem; display: grid; gap: 1.25rem; scroll-margin-top: 5rem; }
+  @media (min-width: 1024px) { .connect { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
+  .section-title { margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 14px; font-weight: 600; }
+  .section-title svg { color: var(--mint); flex: none; }
+  .copy { display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.5rem; }
+  .copy .code { flex: 1; padding: 0.625rem 0.875rem; white-space: nowrap; }
+  ol.steps { margin: 1rem 0 0; padding-left: 1.25rem; font-size: 14px; color: var(--muted); }
+  ol.steps li + li { margin-top: 0.375rem; }
+  ol.steps em { color: var(--text); font-style: normal; }
+  .legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.875rem; font-size: 14px; color: var(--muted); }
+  .legend .status { margin-bottom: 0.25rem; }
+
+  /* Fiche d'un agent */
+  .back { font-size: 14px; color: var(--muted); }
+  .back:hover { color: var(--text); }
+  .agent-head { margin-top: 1rem; display: grid; gap: 1.5rem; }
+  @media (min-width: 1024px) { .agent-head { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+  .agent-head .visual { border: 1px solid var(--line); border-radius: 1rem; }
+  @media (min-width: 1024px) { .agent-head .visual { aspect-ratio: 4 / 3; } }
+  .agent-head .visual::after { display: none; }
+  .agent-head .ident { display: flex; flex-direction: column; min-width: 0; }
+  .agent-head .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .agent-head h1 { margin-top: 0.75rem; font-size: 1.875rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+  @media (min-width: 640px) { .agent-head h1 { font-size: 2.25rem; } }
+  .agent-head p.lead { margin-top: 0.75rem; font-size: 18px; color: var(--muted); }
+  .caps { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.375rem; }
+  .cap { border-radius: 999px; border: 1px solid rgba(56,189,248,0.4); background: rgba(56,189,248,0.1); padding: 0.125rem 0.625rem; font-size: 12px; font-weight: 500; color: #8fd6fb; }
+  .meta { margin-top: 1rem; font-size: 12px; color: var(--faint); }
+  .actions { margin-top: auto; padding-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+  .note { margin-top: 0.75rem; font-size: 12px; color: var(--muted); }
+  .note.warn { color: var(--amber); }
+  .sections { margin-top: 2rem; display: grid; gap: 1.25rem; }
+  @media (min-width: 1024px) { .sections { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sections .wide { grid-column: span 2; } }
+  ul.lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; font-size: 14px; color: var(--muted); }
+  ul.lines li { display: flex; gap: 0.5rem; }
+  ul.lines li::before { flex: none; width: 1rem; font-weight: 700; }
+  ul.lines.yes li::before { content: "✓"; color: var(--mint); }
+  ul.lines.no li::before { content: "✕"; color: var(--faint); }
+  dl.kv { margin: 0; display: grid; gap: 0.75rem; font-size: 14px; }
+  dl.kv dd { margin: 0.25rem 0 0; color: var(--muted); overflow-wrap: anywhere; }
+  .fn { display: grid; gap: 0.75rem; font-size: 14px; }
+  .fn .name { font: 12px/1.5 var(--mono); color: var(--text); }
+  .fn .sens { margin-left: 0.5rem; border-radius: 999px; border: 1px solid rgba(248,113,113,0.45); padding: 0 0.5rem; font: 600 10px/1.6 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--danger); }
+  .fn p { color: var(--muted); }
+  table.mesures { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.mesures th, table.mesures td { text-align: left; padding: 0.4rem 0.5rem 0.4rem 0; border-bottom: 1px solid var(--line); }
+  table.mesures th { font: 500 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); }
+  table.mesures td { color: var(--muted); }
+  table.mesures td:first-child { font-family: var(--mono); font-size: 12px; color: var(--text); }
+  .scroll-x { overflow-x: auto; }
+
+  footer.site { border-top: 1px solid var(--line); padding: 1.5rem 0; }
+  footer.site .wrap { display: flex; flex-direction: column; gap: 0.5rem; font-size: 12px; color: var(--faint); }
+  footer.site a:hover { color: var(--muted); }
+  @media (min-width: 640px) { footer.site .wrap { flex-direction: row; align-items: center; justify-content: space-between; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .blob, .logo-dot, .menu-panel, .fade-up { animation: none !important; }
+    .tile, .visual::after, .nav-link::after, .btn { transition: none !important; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>Agent Market</h1>
-  <p>Catalogue des agents pour Orchestra. Orchestra lit <code>agents.json</code> à cette adresse.</p>
-  <div id="liste"><p>Chargement…</p></div>
-</main>
+<div class="bg-layer" aria-hidden="true"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div><div class="grid-overlay"></div></div>
+
+<header class="site">
+  <nav class="wrap">
+    <a href="#" class="logo"><span class="logo-dot"></span><span>Agent<b>Market</b></span></a>
+    <div class="nav-links">
+      <a href="#" class="nav-link" data-nav="catalogue">Catalogue</a>
+      <a href="#brancher" class="nav-link" data-nav="brancher">Brancher Orchestra</a>
+      <a href="https://github.com/PBdan-dev/Agent_Market/blob/main/agent-certification/README.md" class="nav-link">Certification</a>
+      <a href="agents.json" class="nav-link">agents.json</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://github.com/PBdan-dev/Agent_Market" class="btn btn-ghost">GitHub</a>
+      <a href="https://github.com/PBdan-dev/Agent_Market#publier-un-agent-local" class="btn btn-primary">Publier un agent</a>
+    </div>
+    <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-panel" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path id="menu-icon" d="M3 6h14M3 10h14M3 14h14"/></svg>
+    </button>
+  </nav>
+  <div class="menu-panel" id="menu-panel">
+    <a class="item" href="#">Catalogue</a>
+    <a class="item" href="#brancher">Brancher Orchestra</a>
+    <a class="item" href="https://github.com/PBdan-dev/Agent_Market/blob/main/agent-certification/README.md">Certification</a>
+    <a class="item" href="agents.json">agents.json</a>
+    <a class="item" href="https://github.com/PBdan-dev/Agent_Market">GitHub</a>
+    <div class="cta"><a href="https://github.com/PBdan-dev/Agent_Market#publier-un-agent-local" class="btn btn-primary">Publier un agent</a></div>
+  </div>
+</header>
+
+<main class="wrap" id="app"><p class="muted">Chargement du catalogue…</p></main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Agent Market · catalogue lu par Orchestra. Les agents certifiés sont signés par la clé du Market ; Orchestra vérifie la signature et l'empreinte du paquet avant d'installer.</span>
+    <a href="https://github.com/PBdan-dev/Agent_Market#format-dune-entr%C3%A9e">Format d'une entrée</a>
+  </div>
+</footer>
+
 <script>
-fetch("agents.json").then(r => r.json()).then(c => {
-  const el = document.getElementById("liste");
-  if (!c.agents || c.agents.length === 0) { el.innerHTML = "<p>Aucun agent publié pour l'instant.</p>"; return; }
-  el.innerHTML = "";
-  for (const a of c.agents) {
-    const d = document.createElement("div"); d.className = "agent";
-    const badge = a.certification?.statut === "orchestra_certified" ? "Orchestra Certified"
-                : a.certification?.statut === "livrable_seul" ? "Livrable seul" : "Non certifié";
-    const h = document.createElement("strong"); h.textContent = `${a.name} ${a.version}`;
-    const b = document.createElement("span"); b.className = "badge"; b.textContent = badge;
-    const p = document.createElement("p"); p.textContent = a.description || "";
-    d.append(h, b, p); el.append(d);
+"use strict";
+// Le site ne fait que lire agents.json : le fichier reste la seule source, celle d'Orchestra.
+const MARKET_URL = new URL(".", location.href).href;
+const SVG_NS = "http://www.w3.org/2000/svg";
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const STATUTS = {
+  orchestra_certified: { label: "Orchestra Certified", cls: "certified", color: "#3ef0c6" },
+  livrable_seul: { label: "Livrable seul", cls: "livrable", color: "#38bdf8" },
+  non_certifie: { label: "Agent de test", cls: "test", color: "#ffb454" },
+};
+const SEGMENTS = [
+  { id: "tous", label: "Tous" },
+  { id: "certifies", label: "Certifiés" },
+  { id: "test", label: "Agents de test" },
+];
+const CATEGORIES = {
+  utilitaire: "Utilitaire", fichiers: "Fichiers", communication: "Communication", documents: "Documents",
+  "image-3d": "Image et 3D", traduction: "Traduction", donnees: "Données", recherche: "Recherche",
+  developpement: "Développement", finance: "Finance", productivite: "Productivité",
+};
+// Pictogrammes dans une boîte de 48 × 48, choisis d'après le champ « icon » de l'agent.
+const GLYPHS = {
+  calendar: "M10 14h28v24H10z M10 21h28 M17 10v7 M31 10v7 M17 28h4 M27 28h4 M17 33h4",
+  folder: "M8 15h12l4 4h16v18H8z M8 22h32",
+  mail: "M8 13h32v22H8z M8 14l16 12 16-12",
+  "file-text": "M13 7h15l8 8v26H13z M28 7v8h8 M18 23h12 M18 29h12 M18 35h8",
+  cube: "M24 7l15 8.5v17L24 41 9 32.5v-17z M24 24l15-8.5 M24 24L9 15.5 M24 24v17",
+  language: "M8 12h18 M17 8v4 M11 12c1 7 6 13 13 15 M23 12c-1 7-6 13-13 15 M27 40l7-16 7 16 M29.5 34h9",
+  table: "M8 11h32v26H8z M8 19h32 M8 28h32 M19 11v26 M30 11v26",
+  search: "M21 10a11 11 0 1 0 0.01 0z M29 29l10 10",
+  code: "M17 15l-9 9 9 9 M31 15l9 9-9 9 M28 11l-8 26",
+  chart: "M11 37V23 M21 37V12 M31 37V27 M41 37V18 M7 37h36",
+  star: "M24 7l3.5 12.5L40 23l-12.5 3.5L24 39l-3.5-12.5L8 23l12.5-3.5z",
+};
+
+let catalogue = null;
+const state = { segment: "tous", q: "", categorie: "" };
+
+// --- Outils ---
+function el(tag, attrs, ...children) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k === "class") n.className = v;
+    else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? "" : v);
   }
-}).catch(() => { document.getElementById("liste").innerHTML = "<p>Catalogue illisible.</p>"; });
+  for (const c of children.flat()) if (c !== null && c !== undefined && c !== false) n.append(c);
+  return n;
+}
+function svgEl(tag, attrs, ...children) {
+  const n = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+  for (const c of children) n.append(c);
+  return n;
+}
+function hash(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+function hexHue(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return null;
+  const n = parseInt(m[1], 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+  if (d === 0) return 220;
+  let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return Math.round((h * 60 + 360) % 360);
+}
+function safeUrl(u) {
+  try { const url = new URL(u, location.href); return url.protocol === "https:" ? url.href : null; } catch { return null; }
+}
+function bytes(n) {
+  if (typeof n !== "number") return "";
+  if (n < 1024) return `${n} o`;
+  if (n < 1048576) return `${Math.round(n / 1024)} Ko`;
+  return `${(n / 1048576).toFixed(1).replace(".", ",")} Mo`;
+}
+function dateFr(d) {
+  const t = Date.parse(d || "");
+  return isNaN(t) ? "" : new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+const statutOf = (a) => STATUTS[a.certification?.statut] || STATUTS.non_certifie;
+const statutKey = (a) => (STATUTS[a.certification?.statut] ? a.certification.statut : "non_certifie");
+const categorieLabel = (c) => CATEGORIES[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1).replace(/-/g, " ") : "Agent");
+function priceOf(a) {
+  if (a.prix?.type === "location") {
+    const v = a.prix.par_mission_eur;
+    return typeof v === "number" ? `${v.toFixed(2).replace(".", ",")} € / mission` : "À louer";
+  }
+  return `Gratuit${a.version ? ` · v${a.version}` : ""}`;
+}
+const runLabel = (a) => (a.execution?.type === "heberge" ? "Hébergé" : "Local");
+
+// --- Illustration générée pour chaque agent (reprise de la PR #1) ---
+// Teinte de fond : couleur de l'agent ; couleur des orbites : statut de certification.
+function agentVisual(a) {
+  const seed = hash(a.id || a.name || "agent");
+  const hue = hexHue(a.color) ?? seed % 360;
+  const color = statutOf(a).color;
+  const id = `v-${(a.id || "agent").replace(/[^a-z0-9-]/gi, "")}-${seed % 9973}`;
+  const tilt = -14 + (seed % 20);
+  const defs = svgEl("defs", {},
+    svgEl("linearGradient", { id: `${id}-bg`, x1: 0, y1: 0, x2: 1, y2: 1 },
+      svgEl("stop", { offset: 0, "stop-color": `hsl(${hue} 50% 14%)` }),
+      svgEl("stop", { offset: 1, "stop-color": `hsl(${(hue + 40) % 360} 45% 8%)` })),
+    svgEl("radialGradient", { id: `${id}-glow`, cx: 0.5, cy: 0.5, r: 0.5 },
+      svgEl("stop", { offset: 0, "stop-color": color, "stop-opacity": 0.55 }),
+      svgEl("stop", { offset: 1, "stop-color": color, "stop-opacity": 0 })),
+    svgEl("pattern", { id: `${id}-dots`, width: 14, height: 14, patternUnits: "userSpaceOnUse" },
+      svgEl("circle", { cx: 1, cy: 1, r: 1, fill: "rgba(255,255,255,0.08)" })));
+  const svg = svgEl("svg", { viewBox: "0 0 320 180", preserveAspectRatio: "xMidYMid slice", role: "img", "aria-label": `Illustration de l'agent ${a.name || a.id}` },
+    defs,
+    svgEl("rect", { width: 320, height: 180, fill: `url(#${id}-bg)` }),
+    svgEl("rect", { width: 320, height: 180, fill: `url(#${id}-dots)` }),
+    svgEl("circle", { cx: 160, cy: 90, r: 78, fill: `url(#${id}-glow)` }));
+  for (let i = 0; i < 7; i++) {
+    const s = hash(`${a.id}-${i}`);
+    svg.append(svgEl("circle", { cx: 16 + (s % 288), cy: 14 + ((s >>> 8) % 152), r: 1 + ((s >>> 16) % 3) * 0.6, fill: "#fff", opacity: 0.25 + ((s >>> 20) % 5) * 0.12 }));
+  }
+  const orbit = (rx, ry, rot, stroke, op, r, fill, dur, path) => {
+    const dot = svgEl("circle", { r, fill, opacity: fill === "#fff" ? 0.8 : 1 });
+    if (!reduceMotion) dot.append(svgEl("animateMotion", { dur, repeatCount: "indefinite", path }));
+    else dot.setAttribute("cx", rx);
+    return svgEl("g", { transform: `translate(160 90) rotate(${rot})` },
+      svgEl("ellipse", { rx, ry, fill: "none", stroke, "stroke-opacity": op, "stroke-width": 1 }), dot);
+  };
+  svg.append(
+    orbit(126, 48, tilt, color, 0.28, 4, color, "14s", "M126,0 A126,48 0 1,1 -126,0 A126,48 0 1,1 126,0"),
+    orbit(86, 30, tilt + 62, "#fff", 0.14, 2.5, "#fff", "9s", "M-86,0 A86,30 0 1,0 86,0 A86,30 0 1,0 -86,0"));
+  const ring = svgEl("circle", { cx: 160, cy: 90, r: 44, fill: "none", stroke: color, "stroke-opacity": 0.35, "stroke-width": 1 });
+  if (!reduceMotion) ring.append(
+    svgEl("animate", { attributeName: "r", values: "42;54;42", dur: "4.5s", repeatCount: "indefinite" }),
+    svgEl("animate", { attributeName: "stroke-opacity", values: "0.35;0;0.35", dur: "4.5s", repeatCount: "indefinite" }));
+  svg.append(ring,
+    svgEl("circle", { cx: 160, cy: 90, r: 38, fill: "rgba(7,11,20,0.55)", stroke: color, "stroke-opacity": 0.6, "stroke-width": 1.2 }),
+    svgEl("g", { transform: "translate(136 66)", fill: "none", stroke: color, "stroke-width": 2.4, "stroke-linecap": "round", "stroke-linejoin": "round" },
+      svgEl("path", { d: GLYPHS[a.icon] || GLYPHS.star })));
+  return svg;
+}
+function statusBadge(a) {
+  const s = statutOf(a);
+  return el("span", { class: `status s-${s.cls}`, text: s.label });
+}
+function icon(d) {
+  return svgEl("svg", { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }, svgEl("path", { d }));
+}
+const ICONS = {
+  check: "M20 6L9 17l-5-5",
+  cross: "M18 6L6 18M6 6l12 12",
+  tool: "M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z",
+  chip: "M7 7h10v10H7z M10 3v4 M14 3v4 M10 17v4 M14 17v4 M3 10h4 M3 14h4 M17 10h4 M17 14h4",
+  shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
+  box: "M12 3l8 4.5v9L12 21l-8-4.5v-9z M12 12l8-4.5 M12 12L4 7.5 M12 12v9",
+  plug: "M9 2v6M15 2v6M6 8h12v4a6 6 0 01-12 0zM12 18v4",
+  list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+  info: "M12 22a10 10 0 100-20 10 10 0 000 20z M12 16v-4 M12 8h.01",
+  bolt: "M13 2L4 14h7l-1 8 9-12h-7z",
+};
+function section(title, iconKey, cls, ...content) {
+  return el("section", { class: `card fade-up ${cls || ""}` },
+    el("h2", { class: "section-title" }, icon(ICONS[iconKey]), title), ...content);
+}
+function lines(items, kind) {
+  if (!Array.isArray(items) || items.length === 0) return el("p", { class: "muted", text: "Non précisé." });
+  return el("ul", { class: `lines ${kind}` }, items.map((t) => el("li", {}, el("span", { text: String(t) }))));
+}
+function kv(pairs) {
+  return el("dl", { class: "kv" }, pairs.filter(([, v]) => v !== undefined && v !== null && v !== "").map(([k, v]) =>
+    el("div", {}, el("dt", { class: "mono-label", text: k }), el("dd", {}, v))));
+}
+function copyField(value) {
+  const btn = el("button", { type: "button", class: "btn btn-secondary", text: "Copier" });
+  btn.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(value); btn.textContent = "Copié"; }
+    catch { btn.textContent = "Sélectionnez"; }
+    setTimeout(() => (btn.textContent = "Copier"), 1600);
+  });
+  return el("div", { class: "copy" }, el("code", { class: "code", text: value }), btn);
+}
+
+// --- Accueil : catalogue en tuiles ---
+function matches(a) {
+  const k = statutKey(a);
+  if (state.segment === "certifies" && k === "non_certifie") return false;
+  if (state.segment === "test" && k !== "non_certifie") return false;
+  if (state.categorie && a.categorie !== state.categorie) return false;
+  if (state.q) {
+    const hay = [a.name, a.id, a.description, a.categorie, ...(a.capabilities || []), ...(a.fiche?.sait_faire || [])].join(" ").toLowerCase();
+    if (!state.q.toLowerCase().split(/\s+/).every((w) => hay.includes(w))) return false;
+  }
+  return true;
+}
+function tile(a, i) {
+  const k = statutKey(a), s = statutOf(a);
+  const caps = (a.capabilities || []).filter((c) => c.toLowerCase() !== String(a.categorie || "").toLowerCase()).slice(0, 2);
+  return el("article", { class: "tile fade-up", "data-statut": k, style: `animation-delay:${Math.min(i, 12) * 55}ms` },
+    el("a", { href: `#agent/${encodeURIComponent(a.id)}` },
+      el("div", { class: "visual" }, agentVisual(a), statusBadge(a)),
+      el("div", { class: "body" },
+        el("p", { class: "mono-label label" }, categorieLabel(a.categorie), caps.length ? el("span", { style: "opacity:.7", text: ` · ${caps.join(" · ")}` }) : null),
+        el("h3", { text: a.name || a.id }),
+        el("p", { class: "desc", text: a.description || "" }),
+        el("div", { class: "foot" },
+          el("span", { class: `price c-${s.cls}`, text: priceOf(a) }),
+          el("span", { class: "by", text: `${runLabel(a)} · par ${a.author?.nom || "inconnu"}` })))));
+}
+function renderGrid(gridBox) {
+  // Les agents certifiés d'abord, puis les agents de test ; l'ordre du catalogue est gardé dans chaque groupe.
+  const rank = (a) => (statutKey(a) === "non_certifie" ? 1 : 0);
+  const agents = (catalogue.agents || []).filter(matches).map((a, i) => [a, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]).map(([a]) => a);
+  const hasFilters = state.q || state.categorie || state.segment !== "tous";
+  gridBox.replaceChildren(
+    el("p", { class: "count", text: `${agents.length} agent${agents.length > 1 ? "s" : ""}` }),
+    agents.length
+      ? el("div", { class: "grid" }, agents.map(tile))
+      : el("div", { class: "empty", text: hasFilters ? "Aucun agent ne correspond à ces filtres." : "Aucun agent publié pour l'instant." }));
+}
+function renderHome() {
+  const app = document.getElementById("app");
+  const all = catalogue.agents || [];
+  const cats = [...new Set(all.map((a) => a.categorie).filter(Boolean))].sort((x, y) => categorieLabel(x).localeCompare(categorieLabel(y), "fr"));
+  const gridBox = el("div");
+  const chipsBox = el("div", { class: "chips" });
+  const segBox = el("div", { class: "segments", role: "tablist", "aria-label": "Statut des agents" });
+
+  const refresh = () => {
+    segBox.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.seg === state.segment)));
+    chipsBox.querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c.dataset.cat === state.categorie));
+    clearBtn.hidden = !(state.q || state.categorie || state.segment !== "tous");
+    renderGrid(gridBox);
+  };
+  for (const s of SEGMENTS) segBox.append(el("button", { type: "button", role: "tab", "data-seg": s.id, text: s.label, onclick: () => { state.segment = s.id; refresh(); } }));
+  const search = el("input", { class: "input search", type: "search", placeholder: "Rechercher un agent, une capacité…", "aria-label": "Recherche", value: state.q });
+  search.addEventListener("input", () => { state.q = search.value.trim(); refresh(); });
+  chipsBox.append(el("button", { type: "button", class: "chip", "data-cat": "", text: "Toutes catégories", onclick: () => { state.categorie = ""; refresh(); } }));
+  for (const c of cats) chipsBox.append(el("button", { type: "button", class: "chip", "data-cat": c, text: categorieLabel(c), onclick: () => { state.categorie = state.categorie === c ? "" : c; refresh(); } }));
+  const clearBtn = el("button", { type: "button", class: "clear", text: "Effacer les filtres", onclick: () => { state.q = ""; state.categorie = ""; state.segment = "tous"; search.value = ""; refresh(); } });
+  chipsBox.append(clearBtn);
+
+  const certifies = all.filter((a) => statutKey(a) !== "non_certifie").length;
+  app.replaceChildren(
+    el("div", { class: "hero fade-up" },
+      el("p", { class: "mono-label", text: `Agents pour Orchestra · ${certifies} certifié${certifies > 1 ? "s" : ""} · ${all.length - certifies} en test` }),
+      el("h1", { text: "Des agents prêts à servir" }),
+      el("p", { class: "intro", text: "Chaque agent du catalogue s'installe en un clic depuis Orchestra et travaille sur votre ordinateur. Sa fiche dit ce qu'il sait faire, ce qu'il ne fait pas, ce qu'il demande et ce qu'il touche. Les agents certifiés sont contrôlés puis signés par le Market." })),
+    el("div", { class: "toolbar fade-up", style: "animation-delay:80ms" },
+      el("div", { class: "row" }, segBox, search),
+      chipsBox),
+    gridBox,
+    connectBlock());
+  refresh();
+}
+function connectBlock() {
+  return el("div", { class: "connect", id: "brancher" },
+    section("Brancher Orchestra sur ce Market", "plug", "",
+      el("p", { class: "muted", style: "font-size:14px", text: "Orchestra lit ce catalogue tout seul : par défaut, il pointe déjà sur cette adresse. Pour un autre Orchestra, il suffit de la coller une fois." }),
+      copyField(MARKET_URL),
+      el("ol", { class: "steps" },
+        el("li", {}, "Dans Orchestra : ", el("em", { text: "Paramètres → URL de l'Agent Market" }), ", collez l'adresse."),
+        el("li", {}, "Ouvrez ", el("em", { text: "Agents → Market" }), " : le catalogue s'affiche avec les mêmes fiches qu'ici."),
+        el("li", {}, "Choisissez ", el("em", { text: "Installer" }), " : Orchestra télécharge le paquet, vérifie son empreinte et la signature, puis le branche.")),
+      el("p", { class: "note" }, "Catalogue brut : ", el("a", { href: "agents.json", class: "c-certified", text: "agents.json" }))),
+    section("Les badges", "shield", "",
+      el("ul", { class: "legend" },
+        el("li", {}, el("div", {}, statusBadge({ certification: { statut: "orchestra_certified" } })), "Contrôlé (tests rejoués, code scanné, déclarations vérifiées) et signé par la clé du Market. Installable par tous."),
+        el("li", {}, el("div", {}, statusBadge({ certification: { statut: "livrable_seul" } })), "Agent hébergé chez son auteur : seul son livrable est contrôlé et signé."),
+        el("li", {}, el("div", {}, statusBadge({ certification: { statut: "non_certifie" } })), "Agent de test d'Orchestra, sans signature : visible et installable seulement en mode développement."))));
+}
+
+// --- Fiche d'un agent ---
+function renderAgent(id) {
+  const app = document.getElementById("app");
+  const a = (catalogue.agents || []).find((x) => x.id === id);
+  if (!a) {
+    app.replaceChildren(el("a", { href: "#", class: "back", text: "← Catalogue" }),
+      el("div", { class: "empty", style: "margin-top:1rem", text: "Cet agent n'est pas (ou plus) dans le catalogue." }));
+    return;
+  }
+  const k = statutKey(a), s = statutOf(a), cert = a.certification || {}, fiche = a.fiche || {};
+  const pkg = a.paquet || {}, pkgUrl = safeUrl(pkg.url), contact = safeUrl(a.author?.contact);
+  const sys = (a.execution?.systemes || []).map((x) => x.replace("windows", "Windows").replace("-x64", " x64")).join(", ");
+
+  const actions = el("div", { class: "actions" });
+  if (pkgUrl) actions.append(el("a", { href: pkgUrl, class: "btn btn-primary", text: `↓ Télécharger v${a.version}` }), el("span", { class: "muted", style: "font-size:12px", text: bytes(pkg.taille_octets) }));
+  if (a.execution?.type === "heberge" && safeUrl(a.execution.adresse)) actions.append(el("span", { class: "muted", style: "font-size:14px", text: "Agent hébergé : Orchestra l'appelle à distance." }));
+  if (contact) actions.append(el("a", { href: contact, class: "btn btn-ghost", rel: "noopener noreferrer", text: "Auteur ↗" }));
+
+  const fonctions = (fiche.fonctions || []);
+  const mesures = cert.mesures && typeof cert.mesures === "object" ? Object.entries(cert.mesures) : [];
+  const modele = a.modele || {};
+  const modeleTxt = (v) => (v === "aucun" ? "Aucun" : v === "inherit" ? "Celui d'Orchestra" : v);
+
+  app.replaceChildren(
+    el("a", { href: "#", class: "back", text: "← Catalogue" }),
+    el("header", { class: "agent-head" },
+      el("div", { class: "visual fade-up" }, agentVisual(a)),
+      el("div", { class: "ident fade-up", style: "animation-delay:60ms" },
+        el("div", { class: "tags" }, statusBadge(a), el("span", { class: "mono-label", text: categorieLabel(a.categorie) })),
+        el("h1", { text: a.name || a.id }),
+        el("p", { class: "lead", text: a.description || "" }),
+        el("div", { class: "caps" }, (a.capabilities || []).map((c) => el("span", { class: "cap", text: c }))),
+        el("p", { class: "meta", text: [`Par ${a.author?.nom || "inconnu"}`, `version ${a.version}`, runLabel(a), sys, a.licence && `licence ${a.licence}`, priceOf(a).startsWith("Gratuit") ? "gratuit" : priceOf(a)].filter(Boolean).join(" · ") }),
+        actions,
+        el("p", { class: "note", text: "Le plus simple : installez-le depuis Orchestra (Agents → Market), qui vérifie le paquet avant de le brancher." }),
+        k === "non_certifie" ? el("p", { class: "note warn", text: "Agent de test, non signé : Orchestra ne le montre et ne l'installe qu'en mode développement." }) : null)),
+    el("div", { class: "sections" },
+      section("Ce qu'il sait faire", "check", "", lines(fiche.sait_faire, "yes")),
+      section("Ce qu'il ne fait pas", "cross", "", lines(fiche.ne_sait_pas_faire, "no")),
+      section("Fonctions", "tool", "",
+        fonctions.length
+          ? el("div", { class: "fn" }, fonctions.map((f) => el("div", {},
+              el("div", {}, el("span", { class: "name", text: f.nom }), String(f.nom || "").startsWith("action_sensitive_") ? el("span", { class: "sens", text: "validation" }) : null),
+              el("p", { text: f.description || "" }))))
+          : el("p", { class: "muted", style: "font-size:14px", text: "Aucune fonction : l'agent ne touche à rien." }),
+        fiche.consignes ? el("p", { class: "note", text: fiche.consignes }) : null),
+      section("Modèle et puissance", "chip", "",
+        kv([
+          ["Modèle demandé", modeleTxt(modele.demande)],
+          ["Minimum", modeleTxt(modele.minimum)],
+          ["Recommandé", modeleTxt(modele.recommande)],
+          ["Accès au modèle", modele.via === "porte" ? "Par la porte d'Orchestra" : modele.via],
+          ["Mémoire graphique", typeof a.ressources?.vram_go === "number" ? (a.ressources.vram_go ? `${a.ressources.vram_go} Go` : "Aucune") : undefined],
+          ["Carte graphique exclusive", a.ressources ? (a.ressources.gpu_exclusif ? "Oui" : "Non") : undefined],
+        ])),
+      section("Ce qu'il touche", "shield", "",
+        kv([
+          ["Fichiers", a.acces_declares?.fichiers],
+          ["Réseau", Array.isArray(a.reseau_declare) ? (a.reseau_declare.length ? a.reseau_declare.join(", ") : "Aucun accès réseau") : undefined],
+          ["Identifiants", Array.isArray(a.identifiants) ? (a.identifiants.length ? a.identifiants.map((x) => (typeof x === "string" ? x : x.nom || JSON.stringify(x))).join(", ") : "Aucun") : undefined],
+          ["Mémoire propre", typeof a.memoire_propre === "boolean" ? (a.memoire_propre ? "Oui, il retient des préférences d'une mission à l'autre" : "Non") : undefined],
+        ])),
+      section("Tâches acceptées", "list", "",
+        lines((a.taches || []).map((t) => t.type))),
+      section("Paquet et certification", "box", "wide",
+        kv([
+          ["Statut", s.label + (cert.version_certifiee ? ` · version certifiée ${cert.version_certifiee}` : "") + (cert.date ? ` · le ${dateFr(cert.date)}` : "")],
+          ["Signature du Market", cert.signature ? el("span", {}, el("span", { class: "c-certified", text: "Signée (Ed25519)" }), ", vérifiée par Orchestra à l'installation") : "Aucune"],
+          ["Paquet", pkgUrl ? `${pkgUrl.split("/").pop()} · ${bytes(pkg.taille_octets)}` : undefined],
+          ["Empreinte SHA-256", pkg.sha256 ? el("code", { class: "mono", style: "font-size:12px;color:var(--text)", text: pkg.sha256 }) : undefined],
+          ["Compatibilité", a.compatibilite ? `Orchestra ${a.compatibilite.orchestra_min || "?"} ou plus · contrat ${a.compatibilite.contrat ?? "?"}` : undefined],
+        ]),
+        mesures.length ? el("div", { class: "scroll-x", style: "margin-top:1rem" },
+          el("p", { class: "mono-label", style: "margin-bottom:.5rem", text: "Mesures relevées à la certification" }),
+          el("table", { class: "mesures" },
+            el("thead", {}, el("tr", {}, ["Tâche", "Durée max", "Pas max", "Jetons max"].map((h) => el("th", { text: h })))),
+            el("tbody", {}, mesures.map(([t, m]) => el("tr", {},
+              el("td", { text: t }),
+              el("td", { text: m.duree_max_s != null ? `${m.duree_max_s} s` : "—" }),
+              el("td", { text: m.pas_max != null ? String(m.pas_max) : "—" }),
+              el("td", { text: m.tokens_max != null ? m.tokens_max.toLocaleString("fr-FR") : "—" })))))) : null)));
+  document.title = `${a.name || a.id} · Agent Market`;
+}
+
+// --- Navigation par l'ancre de l'adresse ---
+function route() {
+  if (!catalogue) return;
+  const h = decodeURIComponent(location.hash.slice(1));
+  document.querySelectorAll("[data-nav]").forEach((n) => n.removeAttribute("aria-current"));
+  closeMenu();
+  if (h.startsWith("agent/")) {
+    renderAgent(h.slice(6));
+    window.scrollTo(0, 0);
+    return;
+  }
+  document.title = "Agent Market";
+  if (!document.querySelector(".hero")) renderHome();
+  const nav = h === "brancher" ? "brancher" : "catalogue";
+  document.querySelector(`[data-nav="${nav}"]`)?.setAttribute("aria-current", "page");
+  if (h === "brancher") document.getElementById("brancher")?.scrollIntoView();
+  else window.scrollTo(0, 0);
+}
+const menuBtn = document.getElementById("menu-btn"), menuPanel = document.getElementById("menu-panel");
+function closeMenu() {
+  menuPanel.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false");
+  document.getElementById("menu-icon").setAttribute("d", "M3 6h14M3 10h14M3 14h14");
+}
+menuBtn.addEventListener("click", () => {
+  const open = !menuPanel.classList.contains("open");
+  menuPanel.classList.toggle("open", open); menuBtn.setAttribute("aria-expanded", String(open));
+  document.getElementById("menu-icon").setAttribute("d", open ? "M5 5l10 10M15 5L5 15" : "M3 6h14M3 10h14M3 14h14");
+});
+menuPanel.addEventListener("click", (e) => { if (e.target.closest("a")) closeMenu(); });
+addEventListener("hashchange", route);
+
+fetch("agents.json", { cache: "no-cache" })
+  .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then((c) => { catalogue = c; route(); })
+  .catch(() => {
+    document.getElementById("app").replaceChildren(el("div", { class: "empty", text: "Catalogue illisible pour l'instant. Réessayez dans un moment." }));
+  });
 </script>
 </body>
 </html>
