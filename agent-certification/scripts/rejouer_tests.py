@@ -14,7 +14,7 @@ Pour chaque fichier de tests/ :
   5. relève durée, pas (appels au modèle) et tokens.
 Le critère de réussite propre à chaque test reste à juger par l'auditeur (livrables conservés dans --sortie).
 Bibliothèque standard Python uniquement."""
-import base64, hashlib, http.server, json, os, secrets, shlex, shutil, subprocess, sys, tempfile, threading, time
+import base64, hashlib, http.server, json, os, queue, secrets, shlex, shutil, subprocess, sys, tempfile, threading, time
 import urllib.request
 from pathlib import Path
 
@@ -171,7 +171,15 @@ def rejouer(paquet, test_path, args, sortie):
     proc.stdin.write(json.dumps(mission, ensure_ascii=False) + "\n"); proc.stdin.flush()
     a_envoyer = list(t.get("messages", []))
     evenements, compte_rendu, illisibles = [], None, 0
-    for ligne in proc.stdout:
+    lignes = queue.Queue()      # lecture dans un fil à part : un agent muet ne bloque plus le rejeu au-delà du plafond
+    threading.Thread(target=lambda: [lignes.put(l) for l in proc.stdout] + [lignes.put(None)], daemon=True).start()
+    while True:
+        try:
+            ligne = lignes.get(timeout=max(0.1, duree_max - (time.time() - debut)))
+        except queue.Empty:
+            break
+        if ligne is None:
+            break
         try:
             o = json.loads(ligne)
         except ValueError:
