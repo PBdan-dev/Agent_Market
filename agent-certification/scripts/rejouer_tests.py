@@ -14,7 +14,7 @@ Pour chaque fichier de tests/ :
   5. relève durée, pas (appels au modèle) et tokens.
 Le critère de réussite propre à chaque test reste à juger par l'auditeur (livrables conservés dans --sortie).
 Bibliothèque standard Python uniquement."""
-import base64, hashlib, http.server, json, os, secrets, shlex, shutil, subprocess, sys, tempfile, threading, time
+import base64, hashlib, http.server, json, os, queue, secrets, shlex, shutil, subprocess, sys, tempfile, threading, time
 import urllib.request
 from pathlib import Path
 
@@ -85,6 +85,7 @@ class Web(http.server.ThreadingHTTPServer):
         self.base = f"http://127.0.0.1:{self.server_address[1]}"
         self.pages = {k: (v if isinstance(v, dict) else {"contenu": v}) for k, v in pages.items()}
         self.demandes = []
+        self.envois = []
 
 class PageWeb(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -103,6 +104,19 @@ class PageWeb(http.server.BaseHTTPRequestHandler):
             data = contenu.replace("WEB_DE_TEST", w.base).encode("utf-8")
         self.send_response(int(page.get("statut", 200)))
         self.send_header("Content-Type", page.get("type", "text/html; charset=utf-8"))
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_POST(self):
+        """Faux service (envoi de mail, dépôt de brouillon…) : le corps reçu est gardé, réponse {"ok": true}."""
+        w = self.server
+        corps = self.rfile.read(int(self.headers.get("Content-Length", 0) or 0)).decode("utf-8", "replace")
+        w.demandes.append(self.path)
+        w.envois.append({"chemin": self.path, "corps": corps})
+        data = b'{"ok": true}'
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -157,7 +171,15 @@ def rejouer(paquet, test_path, args, sortie):
     proc.stdin.write(json.dumps(mission, ensure_ascii=False) + "\n"); proc.stdin.flush()
     a_envoyer = list(t.get("messages", []))
     evenements, compte_rendu, illisibles = [], None, 0
-    for ligne in proc.stdout:
+    lignes = queue.Queue()      # lecture dans un fil à part : un agent muet ne bloque plus le rejeu au-delà du plafond
+    threading.Thread(target=lambda: [lignes.put(l) for l in proc.stdout] + [lignes.put(None)], daemon=True).start()
+    while True:
+        try:
+            ligne = lignes.get(timeout=max(0.1, duree_max - (time.time() - debut)))
+        except queue.Empty:
+            break
+        if ligne is None:
+            break
         try:
             o = json.loads(ligne)
         except ValueError:
@@ -183,6 +205,8 @@ def rejouer(paquet, test_path, args, sortie):
     if web:
         web.shutdown()
         (dossier_sortie / "pages_demandees.txt").write_text("\n".join(web.demandes), encoding="utf-8")
+        if web.envois:
+            (dossier_sortie / "envois.json").write_text(json.dumps(web.envois, ensure_ascii=False, indent=2), encoding="utf-8")
         for chemin in t.get("pages_jamais_demandees", []):
             vues = [d for d in web.demandes if d.split("?")[0] == chemin]
             c(not vues, f"page « {chemin} » jamais demandée par l'agent" + ("" if not vues else f" ({len(vues)} fois)"))
