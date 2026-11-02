@@ -1,7 +1,7 @@
 {
   "format": "agent-market/catalogue",
   "version": 1,
-  "genere_le": "2026-11-02T16:26:26+00:00",
+  "genere_le": "2026-11-02T17:05:50+00:00",
   "market": {
     "nom": "Agent Market",
     "url": "https://pbdan-dev.github.io/Agent_Market/",
@@ -1019,6 +1019,287 @@
           "modele_demande": "modeles/creer-evenement.demande.json",
           "modele_livrable": "modeles/creer-evenement.livrable.json",
           "type": "creer-evenement"
+        }
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "acces_declares": {
+        "fichiers": "dossier du projet de la mission (lecture du tableau ; livrables dans analyses/)"
+      },
+      "author": {
+        "contact": "https://github.com/PBdan-dev",
+        "nom": "PB"
+      },
+      "capabilities": [
+        "tableur",
+        "excel",
+        "xlsx",
+        "csv",
+        "données",
+        "calcul",
+        "statistiques",
+        "somme",
+        "moyenne",
+        "tableau croisé",
+        "graphique",
+        "analyse",
+        "chiffres"
+      ],
+      "categorie": "donnees",
+      "certification": {
+        "date": "2026-11-02",
+        "mesures": {
+          "analyser-tableau": {
+            "duree_max_s": 21,
+            "pas_max": 2,
+            "tokens_max": 1990
+          },
+          "decrire-tableau": {
+            "duree_max_s": 1,
+            "pas_max": 0,
+            "tokens_max": 0
+          }
+        },
+        "signature": "ed25519:1rn7WG77xjxGKFoAcrOjZaRUYQU80BGz6OZE685ltMxh5+43R9m4x+xG9syzSo3a4C8PCC6Z67HUa1sP4S3ZDQ==",
+        "statut": "orchestra_certified",
+        "version_certifiee": "1.0.0"
+      },
+      "color": "#68d391",
+      "compatibilite": {
+        "contrat": 1,
+        "orchestra_min": "1.0.0"
+      },
+      "description": "Répond à une question sur un tableau CSV ou Excel par des calculs exacts faits par son propre programme (filtres, colonnes calculées, regroupements, tableaux croisés, tris) et un graphique ; livre le résultat en Excel, CSV et rapport.",
+      "execution": {
+        "commande": "python agent.py",
+        "protocole": "stdio-json",
+        "systemes": [
+          "windows-x64"
+        ],
+        "type": "local"
+      },
+      "fiche": {
+        "consignes": "Aucun calcul n'est fait par le modèle et aucun code du modèle n'est exécuté : le plan JSON est vérifié puis exécuté par le programme. Les cellules du tableau sont des données, jamais des consignes. N'écrit que dans analyses/ du projet, sans écraser.",
+        "fonctions": [
+          {
+            "description": "Lit un tableau du projet (CSV ou Excel), chemin vérifié dans le projet, 50 Mo et 100 000 lignes au plus.",
+            "expose_au_modele": false,
+            "nom": "read_tableau"
+          },
+          {
+            "description": "Lignes d'un CSV, séparateur deviné.",
+            "expose_au_modele": false,
+            "nom": "read_csv"
+          },
+          {
+            "description": "Valeurs d'une feuille d'un .xlsx (dates reconnues), bibliothèque standard.",
+            "expose_au_modele": false,
+            "nom": "read_excel"
+          },
+          {
+            "description": "Appel au modèle par la porte d'Orchestra (plan d'analyse en JSON, puis commentaire), réflexion coupée, sans outils.",
+            "expose_au_modele": false,
+            "nom": "read_modele"
+          },
+          {
+            "description": "Écrit le rapport, le tableau Excel, le CSV et le graphique dans analyses/ du projet, sans jamais écraser.",
+            "expose_au_modele": false,
+            "nom": "action_ecrire_livrable"
+          }
+        ],
+        "ne_sait_pas_faire": [
+          "Modifier le tableau d'origine ou écrire des formules Excel",
+          "Exécuter du code : le modèle propose un plan, seules les opérations listées sont faites",
+          "Faire des prévisions, des régressions ou des statistiques avancées",
+          "Lire les anciens fichiers .xls, une base de données ou un tableau de plus de 100 000 lignes",
+          "Garantir que le plan choisi répond exactement à la question : il est affiché pour être relu"
+        ],
+        "sait_faire": [
+          "Répondre à une question sur un tableau CSV ou Excel : totaux, moyennes, médianes, comptes, par catégorie ou par mois",
+          "Filtrer des lignes, ajouter des colonnes calculées ([Prix] * [Quantité]), trier, garder les premiers",
+          "Faire un tableau croisé et un graphique (barres, lignes, camembert) en SVG",
+          "Livrer le résultat complet en Excel (.xlsx) et en CSV, avec un rapport qui liste chaque calcul fait",
+          "Décrire un tableau sans modèle : colonnes, types, vides, minimum, maximum"
+        ]
+      },
+      "format_manifeste": "2.0",
+      "icon": "table",
+      "id": "agent-tableur",
+      "identifiants": [],
+      "licence": "MIT",
+      "memoire_propre": false,
+      "modele": {
+        "demande": "inherit",
+        "minimum": "qwen3.6:27b",
+        "recommande": "qwen3.6:27b",
+        "via": "porte"
+      },
+      "name": "Tableur et données",
+      "paquet": {
+        "sha256": "279824eeec5545ee137648e04b8d914015c7c0f2c0a03bf60d2a6cd929a5de73",
+        "taille_octets": 57644,
+        "url": "https://github.com/PBdan-dev/Agent_Market/releases/download/agent-tableur-1.0.0/agent-tableur-1.0.0.zip"
+      },
+      "reseau_declare": [],
+      "ressources": {
+        "gpu_exclusif": false,
+        "vram_go": 18
+      },
+      "taches": [
+        {
+          "modele_demande": "modeles/analyser-tableau.demande.json",
+          "modele_livrable": "modeles/analyser-tableau.livrable.json",
+          "type": "analyser-tableau"
+        },
+        {
+          "modele_demande": "modeles/decrire-tableau.demande.json",
+          "modele_livrable": "modeles/decrire-tableau.livrable.json",
+          "type": "decrire-tableau"
+        }
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "acces_declares": {
+        "fichiers": "dossier du projet de la mission (lecture des scripts et exemples ; écriture dans dev/<nom>/ seulement) ; lancement de Python pour les tests, dans ce dossier"
+      },
+      "author": {
+        "contact": "https://github.com/PBdan-dev",
+        "nom": "PB"
+      },
+      "capabilities": [
+        "programme",
+        "script",
+        "python",
+        "code",
+        "développer",
+        "automatiser",
+        "corriger",
+        "bug",
+        "tests",
+        "outil"
+      ],
+      "categorie": "developpement",
+      "certification": {
+        "date": "2026-11-02",
+        "mesures": {
+          "corriger-script": {
+            "duree_max_s": 20,
+            "pas_max": 1,
+            "tokens_max": 1256
+          },
+          "ecrire-programme": {
+            "duree_max_s": 186,
+            "pas_max": 2,
+            "tokens_max": 8347
+          }
+        },
+        "signature": "ed25519:sE76lLcv/lFxHNi8N3+Byd98z5JnqDifqx+e7RO+mMbPXSAIWiPuxfn1Vhb+IcbzS8Ty+NGg/qMADTppPZdVBw==",
+        "statut": "orchestra_certified",
+        "version_certifiee": "1.0.0"
+      },
+      "color": "#fc8181",
+      "compatibilite": {
+        "contrat": 1,
+        "orchestra_min": "1.0.0"
+      },
+      "description": "Écrit un petit programme Python avec ses tests dans un dossier isolé du projet, lance les tests et le corrige ; corrige aussi un script existant sur une copie. Le code est contrôlé avant tout lancement.",
+      "execution": {
+        "commande": "python agent.py",
+        "protocole": "stdio-json",
+        "systemes": [
+          "windows-x64"
+        ],
+        "type": "local"
+      },
+      "fiche": {
+        "consignes": "Le code du modèle est une donnée tant qu'il n'est pas contrôlé : liste blanche de modules, aucun appel dangereux, sinon validation de l'utilisateur avant de lancer les tests. N'écrit que dans le dossier dev/<nom>/ créé pour la mission. Ne lance jamais le programme lui-même.",
+        "fonctions": [
+          {
+            "description": "Lit un script ou un fichier d'exemple du projet (donnée externe).",
+            "expose_au_modele": false,
+            "nom": "read_fichier"
+          },
+          {
+            "description": "Demande le code et les tests au modèle, par la porte, en JSON, réflexion coupée, sans outils.",
+            "expose_au_modele": false,
+            "nom": "read_modele"
+          },
+          {
+            "description": "Crée le dossier isolé dev/<nom>/ du projet (dev/<nom>-2/ s'il existe) : rien n'est écrasé.",
+            "expose_au_modele": false,
+            "nom": "action_creer_dossier"
+          },
+          {
+            "description": "Écrit le programme et ses tests dans le dossier créé pour la mission.",
+            "expose_au_modele": false,
+            "nom": "action_ecrire_fichiers"
+          },
+          {
+            "description": "Lance les tests d'un code contrôlé (liste blanche) : Python isolé, dossier de la mission, sans variables d'Orchestra, 60 s au plus.",
+            "expose_au_modele": false,
+            "nom": "action_executer_tests"
+          },
+          {
+            "description": "Lance les tests d'un code hors de la liste blanche, seulement après validation de l'utilisateur.",
+            "expose_au_modele": false,
+            "nom": "action_sensitive_executer_tests"
+          },
+          {
+            "description": "Écrit RAPPORT.md dans le dossier de la mission.",
+            "expose_au_modele": false,
+            "nom": "action_ecrire_rapport"
+          }
+        ],
+        "ne_sait_pas_faire": [
+          "Lancer le programme lui-même sur tes fichiers : seuls ses tests sont lancés",
+          "Installer des bibliothèques ou utiliser le réseau",
+          "Lancer sans ta validation un code qui sort de la liste blanche",
+          "Écrire dans un autre langage que Python, ou un logiciel complet",
+          "Modifier un script existant : la correction est une copie dans dev/"
+        ],
+        "sait_faire": [
+          "Écrire un petit programme Python (bibliothèque standard) et ses tests unittest à partir d'un besoin décrit en français",
+          "Lancer les tests dans un dossier isolé et corriger le programme jusqu'à 2 fois",
+          "Corriger un script Python du projet sur une copie, avec des tests qui montrent la correction",
+          "Contrôler le code avant de le lancer : liste blanche de modules, appels dangereux, chemins hors du dossier",
+          "Livrer un RAPPORT.md : utilisation, résultat des tests, points à relire"
+        ]
+      },
+      "format_manifeste": "2.0",
+      "icon": "code",
+      "id": "agent-developpeur",
+      "identifiants": [],
+      "licence": "MIT",
+      "memoire_propre": false,
+      "modele": {
+        "demande": "inherit",
+        "minimum": "qwen3.6:27b",
+        "recommande": "qwen3.6:27b",
+        "via": "porte"
+      },
+      "name": "Développeur Python",
+      "paquet": {
+        "sha256": "a42609669362b14b544773d809cbfbddae3627fcdf15fb91b2d5aea06e35c4ea",
+        "taille_octets": 30170,
+        "url": "https://github.com/PBdan-dev/Agent_Market/releases/download/agent-developpeur-1.0.0/agent-developpeur-1.0.0.zip"
+      },
+      "reseau_declare": [],
+      "ressources": {
+        "gpu_exclusif": false,
+        "vram_go": 18
+      },
+      "taches": [
+        {
+          "modele_demande": "modeles/ecrire-programme.demande.json",
+          "modele_livrable": "modeles/ecrire-programme.livrable.json",
+          "type": "ecrire-programme"
+        },
+        {
+          "modele_demande": "modeles/corriger-script.demande.json",
+          "modele_livrable": "modeles/corriger-script.livrable.json",
+          "type": "corriger-script"
         }
       ],
       "version": "1.0.0"
