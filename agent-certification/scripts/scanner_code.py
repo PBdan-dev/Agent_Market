@@ -18,6 +18,8 @@ RESEAU = ("requests.", "httpx.", "urllib.request.", "urllib3.", "http.client.", 
 FICHIER_ECRITURE = ("write_text", "write_bytes", "unlink", "rmdir", "rmtree", "os.remove",
                     "os.rename", "os.replace", "shutil.", "mkdir", "makedirs", "touch")
 EXECUTION = ("subprocess.", "os.system", "os.popen", "os.exec", "os.spawn")
+# Fonctions de shutil qui ne font que lire : pas une écriture disque.
+SHUTIL_LECTURE = ("shutil.which", "shutil.get_terminal_size", "shutil.disk_usage")
 COFFRE = ("keyring.",)
 DYNAMIQUE = ("eval", "exec", "__import__", "importlib.import_module")
 
@@ -78,6 +80,8 @@ class Scan(ast.NodeVisitor):
         categories = []
         for cat, motifs, autorises in REGLES:
             if any(m in appel or appel.endswith(m.rstrip(".")) for m in motifs):
+                if cat == "écriture disque" and appel in SHUTIL_LECTURE:
+                    continue
                 categories.append((cat, autorises))
         if appel in ("open", "io.open") or appel.endswith(".open"):
             if mode_ecriture(n):
