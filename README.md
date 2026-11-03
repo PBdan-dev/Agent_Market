@@ -34,7 +34,7 @@ Voir `docs/exemple-agents.json`. Blocs principaux :
 |---|---|---|
 | `orchestra_certified` | Orchestra Certified | Oui |
 | `livrable_seul` | Livrable seul (agent hébergé) | Oui |
-| `non_certifie` | Non certifié | Non, sauf les agents de test (`agent-date`, `agent-fichiers`, `agent-brouillons`) : visibles et installables seulement en mode développement d'Orchestra |
+| `non_certifie` | Non certifié | Non, sauf les agents de test (`agent-date`, `agent-fichiers`, `agent-brouillons`, `home-control-py` en attente d'audit) : visibles et installables seulement en mode développement d'Orchestra |
 
 Une certification vaut pour **une version précise** : toute nouvelle version doit être recertifiée.
 Critères et outils de contrôle : [`agent-certification/`](agent-certification/README.md).
