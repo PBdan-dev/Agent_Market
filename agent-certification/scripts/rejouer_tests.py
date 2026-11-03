@@ -121,6 +121,9 @@ class PageWeb(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    # Faux appareil du réseau local (pont Philips Hue…) : PUT traité comme POST, noté et gardé de la même façon.
+    do_PUT = do_POST
+
 def rejouer(paquet, test_path, args, sortie):
     t = lire_json(test_path)
     m = lire_json(Path(paquet) / "manifeste.json")
