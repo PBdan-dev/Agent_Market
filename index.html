@@ -251,12 +251,9 @@
     <div class="nav-links">
       <a href="#" class="nav-link" data-nav="catalogue">Catalogue</a>
       <a href="#brancher" class="nav-link" data-nav="brancher">Brancher Orchestra</a>
-      <a href="https://github.com/PBdan-dev/Agent_Market/blob/main/agent-certification/README.md" class="nav-link">Certification</a>
-      <a href="agents.json" class="nav-link">agents.json</a>
     </div>
     <div class="nav-right">
       <a href="https://github.com/PBdan-dev/Agent_Market" class="btn btn-ghost">GitHub</a>
-      <a href="https://github.com/PBdan-dev/Agent_Market#publier-un-agent-local" class="btn btn-primary">Publier un agent</a>
     </div>
     <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-panel" aria-label="Menu">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path id="menu-icon" d="M3 6h14M3 10h14M3 14h14"/></svg>
@@ -265,10 +262,7 @@
   <div class="menu-panel" id="menu-panel">
     <a class="item" href="#">Catalogue</a>
     <a class="item" href="#brancher">Brancher Orchestra</a>
-    <a class="item" href="https://github.com/PBdan-dev/Agent_Market/blob/main/agent-certification/README.md">Certification</a>
-    <a class="item" href="agents.json">agents.json</a>
     <a class="item" href="https://github.com/PBdan-dev/Agent_Market">GitHub</a>
-    <div class="cta"><a href="https://github.com/PBdan-dev/Agent_Market#publier-un-agent-local" class="btn btn-primary">Publier un agent</a></div>
   </div>
 </header>
 
@@ -302,6 +296,7 @@ const CATEGORIES = {
   utilitaire: "Utilitaire", fichiers: "Fichiers", communication: "Communication", documents: "Documents",
   "image-3d": "Image et 3D", traduction: "Traduction", donnees: "Données", recherche: "Recherche",
   developpement: "Développement", finance: "Finance", productivite: "Productivité",
+  redaction: "Rédaction", messagerie: "Messagerie", maison: "Maison",
 };
 // Pictogrammes dans une boîte de 48 × 48, choisis d'après le champ « icon » de l'agent.
 const GLYPHS = {
@@ -316,6 +311,8 @@ const GLYPHS = {
   code: "M17 15l-9 9 9 9 M31 15l9 9-9 9 M28 11l-8 26",
   chart: "M11 37V23 M21 37V12 M31 37V27 M41 37V18 M7 37h36",
   star: "M24 7l3.5 12.5L40 23l-12.5 3.5L24 39l-3.5-12.5L8 23l12.5-3.5z",
+  pen: "M30 9l9 9-20 20H10v-9z M26 13l9 9",
+  home: "M8 23L24 9l16 14 M13 19v19h22V19 M20 38V28h8v10",
 };
 
 let catalogue = null;
@@ -480,7 +477,8 @@ function matches(a) {
 }
 function tile(a, i) {
   const k = statutKey(a), s = statutOf(a);
-  const caps = (a.capabilities || []).filter((c) => c.toLowerCase() !== String(a.categorie || "").toLowerCase()).slice(0, 2);
+  const sansAccent = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const caps = (a.capabilities || []).filter((c) => sansAccent(c) !== sansAccent(a.categorie)).slice(0, 2);
   return el("article", { class: "tile fade-up", "data-statut": k, style: `animation-delay:${Math.min(i, 12) * 55}ms` },
     el("a", { href: `#agent/${encodeURIComponent(a.id)}` },
       el("div", { class: "visual" }, agentVisual(a), statusBadge(a)),
@@ -526,19 +524,30 @@ function renderHome() {
   chipsBox.append(clearBtn);
 
   const certifies = all.filter((a) => statutKey(a) !== "non_certifie").length;
+  const enTest = all.length - certifies;
+  // Le choix « Tous / Certifiés / Agents de test » ne sert que si le catalogue mélange les deux.
+  const mixte = certifies > 0 && enTest > 0;
+  if (!mixte) state.segment = "tous";
   app.replaceChildren(
     el("div", { class: "hero fade-up" },
-      el("p", { class: "mono-label", text: `Agents pour Orchestra · ${certifies} certifié${certifies > 1 ? "s" : ""} · ${all.length - certifies} en test` }),
+      el("p", { class: "mono-label", text: `Agents pour Orchestra · ${certifies} certifié${certifies > 1 ? "s" : ""}${enTest ? ` · ${enTest} en test` : ""}` }),
       el("h1", { text: "Des agents prêts à servir" }),
       el("p", { class: "intro", text: "Chaque agent du catalogue s'installe en un clic depuis Orchestra et travaille sur votre ordinateur. Sa fiche dit ce qu'il sait faire, ce qu'il ne fait pas, ce qu'il demande et ce qu'il touche. Les agents certifiés sont contrôlés puis signés par le Market." })),
     el("div", { class: "toolbar fade-up", style: "animation-delay:80ms" },
-      el("div", { class: "row" }, segBox, search),
+      el("div", { class: "row" }, mixte ? segBox : null, search),
       chipsBox),
     gridBox,
-    connectBlock());
+    connectBlock(all));
   refresh();
 }
-function connectBlock() {
+const LEGENDE = {
+  orchestra_certified: "Contrôlé puis signé par le Market. Installable par tous.",
+  livrable_seul: "Agent hébergé chez son auteur : seul son livrable est contrôlé et signé.",
+  non_certifie: "Agent de test, sans signature : visible et installable seulement en mode développement d'Orchestra.",
+};
+function connectBlock(all) {
+  const presents = Object.keys(STATUTS).filter((k) => all.some((a) => statutKey(a) === k));
+  if (!presents.length) presents.push("orchestra_certified");
   return el("div", { class: "connect", id: "brancher" },
     section("Brancher Orchestra sur ce Market", "plug", "",
       el("p", { class: "muted", style: "font-size:14px", text: "Orchestra lit ce catalogue tout seul : par défaut, il pointe déjà sur cette adresse. Pour un autre Orchestra, il suffit de la coller une fois." }),
@@ -548,11 +557,19 @@ function connectBlock() {
         el("li", {}, "Ouvrez ", el("em", { text: "Agents → Market" }), " : le catalogue s'affiche avec les mêmes fiches qu'ici."),
         el("li", {}, "Choisissez ", el("em", { text: "Installer" }), " : Orchestra télécharge le paquet, vérifie son empreinte et la signature, puis le branche.")),
       el("p", { class: "note" }, "Catalogue brut : ", el("a", { href: "agents.json", class: "c-certified", text: "agents.json" }))),
-    section("Les badges", "shield", "",
+    section("Ce que garantit le badge", "shield", "",
       el("ul", { class: "legend" },
-        el("li", {}, el("div", {}, statusBadge({ certification: { statut: "orchestra_certified" } })), "Contrôlé (tests rejoués, code scanné, déclarations vérifiées) et signé par la clé du Market. Installable par tous."),
-        el("li", {}, el("div", {}, statusBadge({ certification: { statut: "livrable_seul" } })), "Agent hébergé chez son auteur : seul son livrable est contrôlé et signé."),
-        el("li", {}, el("div", {}, statusBadge({ certification: { statut: "non_certifie" } })), "Agent de test d'Orchestra, sans signature : visible et installable seulement en mode développement."))));
+        presents.map((k) => el("li", {}, el("div", {}, statusBadge({ certification: { statut: k } })), LEGENDE[k]))),
+      el("ul", { class: "lines yes", style: "margin-top:1rem" },
+        [
+          "Testé : ses tests sont rejoués, y compris des contenus piégés qui tentent de le détourner.",
+          "Code relu : tout ce qui touche vos fichiers, Internet ou vos comptes est déclaré ; envoyer, supprimer définitivement, payer ou publier attend votre accord.",
+          "Fiche vérifiée : ce qu'il touche correspond à ce que sa fiche annonce.",
+          "Signé : Orchestra vérifie la signature et l'empreinte du paquet avant de l'installer ; un paquet modifié est refusé.",
+          "Valable pour une version : chaque nouvelle version est recontrôlée.",
+        ].map((t) => el("li", {}, el("span", { text: t })))),
+      el("p", { class: "note" }, "Critères détaillés, pour les auteurs : ",
+        el("a", { href: "https://github.com/PBdan-dev/Agent_Market/blob/main/agent-certification/criteres.md", class: "c-certified", text: "critères de certification" }))));
 }
 
 // --- Fiche d'un agent ---
